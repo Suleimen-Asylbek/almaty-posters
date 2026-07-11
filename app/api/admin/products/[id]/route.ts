@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { buildImagePayload } from '@/lib/product-images';
 
 async function verifyAdmin() {
   const supabase = await createClient();
@@ -35,13 +36,27 @@ export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const body = await req.json();
 
+    const hasImageInput =
+      (typeof body.image_url === 'string' && body.image_url.trim().length > 0) ||
+      (Array.isArray(body.images) && body.images.some((value: unknown) => typeof value === 'string' && value.trim().length > 0));
+
+    if (!hasImageInput) {
+      return NextResponse.json(
+        { error: 'Добавьте хотя бы одно изображение' },
+        { status: 400 }
+      );
+    }
+
+    const { image_url, images } = buildImagePayload(body.image_url, body.images);
+
     const admin = createAdminClient();
     const { data, error } = await admin
       .from('products')
       .update({
         title: body.title,
         description: body.description ?? '',
-        image_url: body.image_url,
+        image_url,
+        images,
         category_id: body.category_id,
         price_30x40: body.price_30x40,
         price_40x50: body.price_40x50,
@@ -81,30 +96,40 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const admin = createAdminClient();
 
-  // Look up the image path first so we can clean up storage too.
-  const { data: product, error: findError } = await admin
+  const { data: product, error } = await admin
     .from('products')
     .select('*')
     .eq('id', id)
     .single();
 
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-
-  const { error } = await admin
+  const { error: deleteError } = await admin
     .from('products')
     .delete()
     .eq('id', id);
 
 
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  // Best-effort storage cleanup; ignore failures (e.g. external image URL).
-  if (product?.image_url) {
+  const imageUrls = Array.isArray(product?.images)
+    ? product.images.filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+    : [];
+
+  const fallbackImageUrl = typeof product?.image_url === 'string' && product.image_url.trim().length > 0
+    ? product.image_url
+    : null;
+
+  const cleanupTargets = fallbackImageUrl ? [fallbackImageUrl, ...imageUrls.filter((url: string) => url !== fallbackImageUrl)] : imageUrls;
+
+  for (const imageUrl of cleanupTargets) {
     try {
-      const url = new URL(product.image_url);
+      const url = new URL(imageUrl);
       const parts = url.pathname.split('/posters/');
       if (parts[1]) {
         await admin.storage.from('posters').remove([parts[1]]);

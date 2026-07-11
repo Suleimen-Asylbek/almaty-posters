@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { createClient } from '@/lib/supabase/server';
 import type { Product, Category } from '@/lib/types';
-import { cache } from "react";
+import { normalizeProductImages } from '@/lib/product-images';
+
 
 
 export const getProducts = cache(async (): Promise<{
@@ -25,7 +27,7 @@ if (error) {
 }
 
 return {
-  products: (data ?? []) as Product[],
+  products: ((data ?? []) as Product[]).map((product) => normalizeProductImages(product) as Product),
   usingMockData: false
 };
   } catch (error) {
@@ -64,7 +66,7 @@ export const getProductBySlug = cache(async (
     }
 
     return {
-      product: data as Product,
+      product: normalizeProductImages(data) as Product,
       usingMockData: false
     };
   } catch (error) {
@@ -103,7 +105,7 @@ export const getProductById = cache(async (
     }
 
     return {
-      product: data as Product,
+      product: normalizeProductImages(data) as Product,
       usingMockData: false
     };
   } catch (error) {
@@ -148,25 +150,6 @@ export const getCategories = cache(async (): Promise<{
   }
 });
 
-export const getLatestProducts = cache(async () => {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("products")
-    .select(`
-      *,
-      category:categories(*)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(24);
-  if (error) {
-    console.error(error);
-    return [];
-  }
-
-  return data ?? [];
-});
-
 export const getFeaturedProducts = cache(async () => {
   try {
     const supabase = await createClient();
@@ -186,13 +169,12 @@ export const getFeaturedProducts = cache(async () => {
       return [];
     }
 
-    return data ?? [];
+    return (data ?? []).map((product) => normalizeProductImages(product));
   } catch (error) {
     console.error("GET FEATURED PRODUCTS EXCEPTION:", error);
     return [];
   }
 });
-
 export const getNewProducts = cache(async () => {
   try {
     const supabase = await createClient();
@@ -212,7 +194,7 @@ export const getNewProducts = cache(async () => {
       return [];
     }
 
-    if (data && data.length > 0) return data;
+    if (data && data.length > 0) return (data ?? []).map((product) => normalizeProductImages(product));
 
     // fallback to latest 4 if none flagged as new
     const { data: fallbackData, error: fallbackError } = await supabase
@@ -229,7 +211,7 @@ export const getNewProducts = cache(async () => {
       return [];
     }
 
-    return fallbackData ?? [];
+    return (fallbackData ?? []).map((product) => normalizeProductImages(product));
   } catch (error) {
     console.error("GET NEW PRODUCTS EXCEPTION:", error);
     return [];

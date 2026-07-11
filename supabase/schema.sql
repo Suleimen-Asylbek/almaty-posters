@@ -18,7 +18,8 @@ create table if not exists products (
   id uuid default gen_random_uuid() primary key,
   title text not null,              -- Russian title
   description text default '',
-  image_url text not null,          -- public URL from Supabase Storage
+  image_url text not null,          -- public URL from Supabase Storage (cover image)
+  images text[] default array[]::text[],
   category_id uuid references categories(id) on delete set null,
   price_30x40 integer not null,     -- price in ₸ for 30×40 cm
   price_40x50 integer not null,     -- price in ₸ for 40×50 cm

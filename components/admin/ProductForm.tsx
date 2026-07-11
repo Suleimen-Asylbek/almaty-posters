@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Trash2, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/utils";
 import type { Category, Product } from "@/lib/types";
@@ -13,6 +13,12 @@ interface ProductFormProps {
   categories: Category[];
   product?: Product;
 }
+
+type ImageEntry = {
+  file?: File;
+  preview: string;
+  uploading?: boolean;
+};
 
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
@@ -36,57 +42,158 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   const [isNew, setIsNew] = useState(product?.is_new ?? false);
   const [featured, setFeatured] = useState(product?.featured ?? false);
 
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    product?.image_url ?? null,
-  );
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const initialImages = useMemo(() => {
+    if (product?.images?.length) {
+      return product.images.map((url) => ({ preview: url }));
+    }
 
+    if (product?.image_url) {
+      return [{ preview: product.image_url }];
+    }
+
+    return [] as ImageEntry[];
+  }, [product?.image_url, product?.images]);
+
+  const [images, setImages] = useState<ImageEntry[]>(initialImages);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const imageEntriesRef = useRef<ImageEntry[]>(images);
+
+  useEffect(() => {
+    imageEntriesRef.current = images;
+  }, [images]);
+
+  useEffect(() => {
+    if (images.length === 0) {
+      setSelectedImageIndex(0);
+      return;
+    }
+
+    if (selectedImageIndex >= images.length) {
+      setSelectedImageIndex(images.length - 1);
+    }
+  }, [images, selectedImageIndex]);
 
   useEffect(() => {
     return () => {
-      if (imagePreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      imageEntriesRef.current.forEach((entry) => {
+        if (entry.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(entry.preview);
+        }
+      });
     };
-  }, [imagePreview]);
+  }, []);
+
+  useEffect(() => {
+    setImages((prev) => {
+      prev.forEach((entry) => {
+        if (entry.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(entry.preview);
+        }
+      });
+
+      return initialImages;
+    });
+    setSelectedImageIndex(0);
+  }, [initialImages]);
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImagePreview(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        setError(`${file.name} слишком большой (максимум 5MB)`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImages((prev) => [
+          ...prev,
+          {
+            file,
+            preview: event.target?.result as string,
+          },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = "";
   }
 
-  async function uploadImage(): Promise<string> {
-    if (!imageFile) {
-      if (imagePreview) return imagePreview; // unchanged existing image
-      throw new Error("Выберите изображение");
+  function removeImage(index: number) {
+    setImages((prev) => {
+      const removed = prev[index];
+      if (removed?.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.preview);
+      }
+
+      const updated = prev.filter((_, itemIndex) => itemIndex !== index);
+      return updated;
+    });
+
+    setSelectedImageIndex((prev) => Math.max(0, Math.min(prev, Math.max(0, images.length - 2))));
+  }
+
+  function moveImageUp(index: number) {
+    if (index === 0) return;
+    setImages((prev) => {
+      const updated = [...prev];
+      [updated[index], updated[index - 1]] = [updated[index - 1], updated[index]];
+      return updated;
+    });
+  }
+
+  function moveImageDown(index: number) {
+    if (index === images.length - 1) return;
+    setImages((prev) => {
+      const updated = [...prev];
+      [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+      return updated;
+    });
+  }
+
+  async function uploadImages(): Promise<string[]> {
+    if (images.length === 0) {
+      throw new Error("Добавьте хотя бы одно изображение");
     }
 
-    setUploadingImage(true);
+    const urls: string[] = [];
     const supabase = createClient();
-    const fileExt = imageFile.name.split(".").pop();
-    const fileName = `${slugify(title) || "poster"}-${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("posters")
-      .upload(fileName, imageFile, { upsert: false });
+    for (let index = 0; index < images.length; index += 1) {
+      const entry = images[index];
 
-    setUploadingImage(false);
+      if (!entry.file) {
+        urls.push(entry.preview);
+        continue;
+      }
 
-    if (uploadError) {
-      throw new Error(`Ошибка загрузки изображения: ${uploadError.message}`);
+      setImages((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], uploading: true };
+        return updated;
+      });
+
+      const fileExt = entry.file.name.split(".").pop();
+      const fileName = `${slugify(title) || "poster"}-${Date.now()}-${index}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("posters")
+        .upload(fileName, entry.file, { upsert: false });
+
+      if (uploadError) {
+        throw new Error(`Ошибка загрузки ${entry.file.name}: ${uploadError.message}`);
+      }
+
+      const { data } = supabase.storage.from("posters").getPublicUrl(fileName);
+      urls.push(data.publicUrl);
     }
 
-    const { data } = supabase.storage.from("posters").getPublicUrl(fileName);
-    return data.publicUrl;
+    return urls;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -101,23 +208,29 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       setError("Выберите категорию");
       return;
     }
+    if (images.length === 0) {
+      setError("Добавьте хотя бы одно изображение");
+      return;
+    }
 
     setSubmitting(true);
 
     try {
-      const imageUrl = await uploadImage();
+      const imageUrls = await uploadImages();
+      const coverImage = imageUrls[0];
 
       const baseSlug = slugify(title) || "poster";
       const slug =
         isEdit && product?.slug?.startsWith(baseSlug)
-          ? product.slug // keep existing slug on edit if title-derived prefix is unchanged
+          ? product.slug
           : `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
 
       const payload = {
         title: title.trim(),
         description: description.trim(),
         category_id: categoryId,
-        image_url: imageUrl,
+        image_url: coverImage,
+        images: imageUrls,
         price_30x40: Number(price30x40),
         price_40x50: Number(price40x50),
         price_50x70: Number(price50x70),
@@ -126,9 +239,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         slug,
       };
 
-      const url = isEdit
-        ? `/api/admin/products/${product!.id}`
-        : "/api/admin/products";
+      const url = isEdit ? `/api/admin/products/${product!.id}` : "/api/admin/products";
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -150,7 +261,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     }
   }
 
-  const busy = submitting || uploadingImage;
+  const uploading = images.some((entry) => entry.uploading);
+  const busy = submitting || uploading;
+  const selectedImage = images[selectedImageIndex] ?? images[0];
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl">
@@ -161,58 +274,124 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Image upload */}
         <div>
           <label className="block text-sm font-semibold text-[#111111] mb-2">
-            Изображение постера
+            Изображения постера
           </label>
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="relative aspect-[3/4] rounded-2xl border-2 border-dashed border-[#E5E5E5] bg-[#F6F6F6] cursor-pointer overflow-hidden hover:border-[#999999] transition-colors flex items-center justify-center"
-          >
-            {imagePreview ? (
-              <>
-                <Image
-                  src={imagePreview}
-                  alt="Превью"
-                  fill
-                  className="object-cover"
-                  sizes="400px"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setImagePreview(null);
-                    setImageFile(null);
-                  }}
-                  className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1.5 hover:bg-white transition-colors"
-                >
-                  <X size={14} className="text-[#111111]" />
-                </button>
-              </>
-            ) : (
-              <div className="text-center px-6">
-                <Upload size={28} className="mx-auto text-[#999999] mb-3" />
-                <p className="text-sm font-medium text-[#666666]">
-                  Нажмите, чтобы загрузить изображение
-                </p>
-                <p className="text-xs text-[#999999] mt-1">PNG, JPG до 5MB</p>
+
+          <div className="space-y-3">
+            <div className="relative aspect-[3/4] rounded-2xl border-2 border-dashed border-[#E5E5E5] bg-[#F6F6F6] overflow-hidden flex items-center justify-center">
+              {selectedImage ? (
+                <>
+                  <Image
+                    src={selectedImage.preview}
+                    alt="Превью"
+                    fill
+                    className="object-cover"
+                    sizes="400px"
+                  />
+                  {selectedImage.uploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 size={24} className="animate-spin text-white" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (images.length === 1) {
+                        setImages([]);
+                        return;
+                      }
+
+                      const targetIndex = selectedImageIndex;
+                      removeImage(targetIndex);
+                    }}
+                    className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1.5 hover:bg-white transition-colors"
+                  >
+                    <X size={14} className="text-[#111111]" />
+                  </button>
+                </>
+              ) : (
+                <div className="text-center px-6">
+                  <Upload size={28} className="mx-auto text-[#999999] mb-3" />
+                  <p className="text-sm font-medium text-[#666666]">
+                    Нажмите, чтобы загрузить изображения
+                  </p>
+                  <p className="text-xs text-[#999999] mt-1">PNG, JPG до 5MB</p>
+                </div>
+              )}
+            </div>
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {images.map((entry, index) => (
+                  <div key={`${entry.preview}-${index}`} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`relative aspect-square w-full overflow-hidden rounded-xl border ${selectedImageIndex === index ? "border-[#111111]" : "border-[#E5E5E5]"}`}
+                    >
+                      <Image src={entry.preview} alt={`Preview ${index + 1}`} fill className="object-cover" sizes="100px" />
+                      {index === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded-full bg-[#111111] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          Cover
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="mt-1 flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveImageUp(index)}
+                        disabled={index === 0}
+                        className="rounded-full border border-[#E5E5E5] p-1 text-[#111111] disabled:opacity-30"
+                      >
+                        <ChevronUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImageDown(index)}
+                        disabled={index === images.length - 1}
+                        className="rounded-full border border-[#E5E5E5] p-1 text-[#111111] disabled:opacity-30"
+                      >
+                        <ChevronDown size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="rounded-full border border-red-200 p-1 text-red-500"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#E5E5E5] px-4 py-3 text-sm font-medium text-[#666666] transition-colors hover:border-[#999999] hover:text-[#111111]"
+            >
+              <Upload size={16} />
+              Добавить ещё фото
+            </button>
           </div>
+
           <input
             ref={fileInputRef}
             type="file"
-            name="image"
-            id="poster-image"
+            name="images"
+            id="poster-images"
             accept="image/*"
+            multiple
             onChange={handleImageSelect}
             className="hidden"
           />
         </div>
 
-        {/* Fields */}
         <div className="space-y-5">
           <div>
             <label htmlFor="title" className="block text-sm font-semibold text-[#111111] mb-1.5">
@@ -329,8 +508,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           className="bg-[#111111] text-white font-semibold px-7 py-3.5 rounded-xl text-sm flex items-center gap-2 disabled:opacity-60"
         >
           {busy && <Loader2 size={16} className="animate-spin" />}
-          {uploadingImage
-            ? "Загрузка изображения..."
+          {uploading
+            ? "Загрузка изображений..."
             : submitting
               ? "Сохранение..."
               : isEdit

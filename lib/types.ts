@@ -10,6 +10,7 @@ export type Product = {
   title: string;
   description: string;
   image_url: string;
+  images: string[];
   category_id: string | null;
   category?: Category;
   price_30x40: number;

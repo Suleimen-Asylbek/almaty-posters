@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { buildImagePayload } from '@/lib/product-images';
 
 
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const required = ['title', 'image_url', 'category_id', 'price_30x40', 'price_40x50', 'price_50x70'];
+    const required = ['title', 'category_id', 'price_30x40', 'price_40x50', 'price_50x70'];
     for (const field of required) {
       if (body[field] === undefined || body[field] === null || body[field] === '') {
         return NextResponse.json(
@@ -41,13 +42,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const hasImageInput =
+      (typeof body.image_url === 'string' && body.image_url.trim().length > 0) ||
+      (Array.isArray(body.images) && body.images.some((value: unknown) => typeof value === 'string' && value.trim().length > 0));
+
+    if (!hasImageInput) {
+      return NextResponse.json(
+        { error: 'Добавьте хотя бы одно изображение' },
+        { status: 400 }
+      );
+    }
+
+    const { image_url, images } = buildImagePayload(body.image_url, body.images);
+
     const admin = createAdminClient();
     const { data, error } = await admin
       .from('products')
       .insert({
         title: body.title,
         description: body.description ?? '',
-        image_url: body.image_url,
+        image_url,
+        images,
         category_id: body.category_id,
         price_30x40: body.price_30x40,
         price_40x50: body.price_40x50,
@@ -98,6 +113,7 @@ export async function GET() {
       title,
       slug,
       image_url,
+      images,
       price_30x40,
       price_40x50,
       price_50x70,

@@ -1,0 +1,104 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BREAKPOINTS, RING_TILT_DEG, type Breakpoint } from "../constants";
+import { getAngleStepDeg, getRingRadiusPx } from "../utils/carouselMath";
+import type { RingLayoutConfig } from "../types";
+
+function pickBreakpoint(viewportWidthPx: number): Breakpoint {
+  return (
+    BREAKPOINTS.find((bp) => viewportWidthPx >= bp.minWidthPx) ??
+    BREAKPOINTS[BREAKPOINTS.length - 1]
+  );
+}
+
+export interface UseResponsiveRingConfig {
+  readonly containerRef: (node: HTMLDivElement | null) => void;
+  readonly containerWidthRef: React.MutableRefObject<number>;
+  readonly config: RingLayoutConfig | null;
+  readonly tiltDeg: number;
+}
+
+/**
+ * Measures the carousel's own container (not the viewport) via
+ * ResizeObserver, throttled to one recalculation per animation frame, and
+ * derives a full RingLayoutConfig from the matching breakpoint. Consumers
+ * get a plain, render-time object — geometry only changes on resize, so
+ * this intentionally uses React state rather than a MotionValue.
+ *
+ * Takes no item-count argument: per V3.1, the ring's shape (angleStep,
+ * radius, window sizes) never depends on how many real items exist.
+ */
+export function useResponsiveRingConfig(): UseResponsiveRingConfig {
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [containerWidthPx, setContainerWidthPx] = useState(0);
+  const containerWidthRef = useRef(0);
+  const elementRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  const measure = useCallback(() => {
+    frameRef.current = null;
+    const width = elementRef.current?.getBoundingClientRect().width ?? 0;
+    if (Math.abs(width - containerWidthRef.current) > 0.5) {
+      containerWidthRef.current = width;
+      setContainerWidthPx(width);
+    }
+    setViewportWidth(window.innerWidth);
+  }, []);
+
+  const scheduleMeasure = useCallback(() => {
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(measure);
+  }, [measure]);
+
+  const containerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (elementRef.current && observerRef.current) {
+        observerRef.current.disconnect();
+      }
+
+      elementRef.current = node;
+      if (!node) return;
+
+      const width = node.getBoundingClientRect().width;
+      containerWidthRef.current = width;
+      setContainerWidthPx(width);
+      setViewportWidth(window.innerWidth);
+
+      const observer = new ResizeObserver(scheduleMeasure);
+      observer.observe(node);
+      observerRef.current = observer;
+    },
+    [scheduleMeasure],
+  );
+
+  useEffect(() => {
+    window.addEventListener("resize", scheduleMeasure);
+    return () => {
+      window.removeEventListener("resize", scheduleMeasure);
+      observerRef.current?.disconnect();
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [scheduleMeasure]);
+
+  const config = useMemo<RingLayoutConfig | null>(() => {
+    if (containerWidthPx <= 0) return null;
+
+    const breakpoint = pickBreakpoint(viewportWidth || containerWidthPx);
+    const angleStepDeg = getAngleStepDeg();
+    const cardWidthPx = containerWidthPx * breakpoint.cardWidthRatio;
+    const radiusPx = getRingRadiusPx(cardWidthPx, angleStepDeg, breakpoint.radiusRatio);
+
+    return {
+      angleStepDeg,
+      radiusPx,
+      frontHalfWindow: breakpoint.frontHalfWindow,
+      backSampleCount: breakpoint.backSampleCount,
+      perspectivePx: breakpoint.perspectivePx,
+      tiltDeg: RING_TILT_DEG,
+      cardWidthPx,
+      cardAspectRatio: breakpoint.cardAspectRatio,
+    };
+  }, [containerWidthPx, viewportWidth]);
+
+  return { containerRef, containerWidthRef, config, tiltDeg: RING_TILT_DEG };
+}

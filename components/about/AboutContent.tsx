@@ -16,6 +16,7 @@ export function AboutContent() {
           fill
           priority
           className="object-cover scale-105 blur-[2px]"
+          unoptimized
         />
         <div className="absolute inset-0 bg-black/50" />
         <motion.div

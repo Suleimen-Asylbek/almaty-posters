@@ -1,44 +1,69 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import type { Product } from '@/lib/types';
-import { formatPrice } from '@/lib/utils';
+import Image from "next/image";
+import Link from "next/link";
+import type { Product } from "@/lib/types";
+import { formatPrice } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
-  showButton?: boolean;
   showNewBadge?: boolean;
   priority?: boolean;
 }
 
-
-
 export function ProductCard({
   product,
-  showButton = false,
   showNewBadge = false,
   priority = false,
 }: ProductCardProps) {
-  const lowestPrice = product.price_30x40;
+  // Логика проверки на наличие нескольких фото
+  const hasMultipleImages =
+    Array.isArray(product.images) && product.images.length > 1;
+  const secondImageUrl = hasMultipleImages ? product.images[1] : null;
+  const lowestPrice = product.price_30x40 || 0;
+
+  // Динамические классы: эффекты работают только на десктопе (md+) и только если есть 2+ фото
+  const cardHoverClasses = hasMultipleImages
+    ? "md:hover:-translate-y-1 md:hover:scale-[1.01]"
+    : "";
+
+  const firstImageHoverClasses = hasMultipleImages
+    ? "md:group-hover:scale-[1.03] md:group-hover:opacity-0"
+    : "";
 
   return (
-    <div className="group transition-transform duration-300 hover:-translate-y-1">
+    <div
+      className={`group transition-all duration-[400ms] ease-out ${cardHoverClasses}`}
+    >
       <Link href={`/product/${product.slug}`} className="block">
-        {/* Image */}
         <div className="relative overflow-hidden rounded-xl bg-[#F6F6F6] aspect-[3/4]">
-          <div className="relative w-full h-full transition-transform duration-300 group-hover:scale-105">
+          {/* БАЗОВЫЙ СЛОЙ: Вторая картинка (статичная, просто проявляется из темноты) */}
+          {secondImageUrl && (
             <Image
-              src={product.image_url}
-              alt={product.title}
+              src={secondImageUrl}
+              alt={`${product.title} - ракурс 2`}
               fill
-              priority={priority}
-              className="object-cover"
+              className="object-cover z-0 opacity-0 transition-opacity duration-[400ms] ease-out md:group-hover:opacity-100"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
-          </div>
+          )}
 
-          {/* Badges — top-left stack */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {(showNewBadge && product.is_new) && (
+          {/* ВЕРХНИЙ СЛОЙ: Главная картинка (увеличивается и растворяется) */}
+          <Image
+            src={product.image_url}
+            alt={product.title}
+            fill
+            priority={priority}
+            className={`object-cover z-10 transition-all duration-[400ms] ease-out ${firstImageHoverClasses}`}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+
+          {/* Легчайшее затемнение 5% (эффект тени) */}
+          {hasMultipleImages && (
+            <div className="absolute inset-0 z-20 bg-black/0 transition-colors duration-[400ms] md:group-hover:bg-black/5 pointer-events-none" />
+          )}
+
+          {/* Бейджи */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-30">
+            {showNewBadge && product.is_new && (
               <span className="bg-[#F97316] text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-tight">
                 НОВИНКА
               </span>
@@ -49,21 +74,9 @@ export function ProductCard({
               </span>
             )}
           </div>
-
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-
-          {/* Hover CTA */}
-          {showButton && (
-            <div className="absolute inset-0 flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <span className="w-full bg-white text-[#111111] text-sm font-semibold py-2.5 rounded-lg text-center shadow-sm">
-                Подробнее
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* Info */}
+        {/* Текст */}
         <div className="mt-3 px-0.5">
           <p className="font-semibold text-[#111111] text-sm leading-snug line-clamp-1">
             {product.title}

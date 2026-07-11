@@ -25,6 +25,10 @@ export function getPriceForSize(product: Product, size: PosterSize): number {
     case '30x40': return product.price_30x40;
     case '40x50': return product.price_40x50;
     case '50x70': return product.price_50x70;
+    default: {
+      const exhaustiveCheck: never = size;
+      throw new Error(`Unknown poster size: ${exhaustiveCheck}`);
+    }
   }
 }
 
@@ -58,4 +62,8 @@ export function slugify(text: string): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+export function buildWhatsAppMessageUrl(phone: string, message: string): string {
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

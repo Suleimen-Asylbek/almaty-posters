@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useDeferredValue } from 'react';
-import { MessageCircle, Search, SearchX, X } from 'lucide-react';
-import { ProductCard } from '@/components/catalog/ProductCard';
-import type { Product, Category } from '@/lib/types';
+import { useState, useMemo, useDeferredValue } from "react";
+import { MessageCircle, Search, SearchX, X } from "lucide-react";
+import { ProductCard } from "@/components/catalog/ProductCard";
+import type { Product, Category } from "@/lib/types";
 
 interface CatalogContentProps {
   products: Product[];
@@ -16,14 +16,14 @@ export function CatalogContent({
   products,
   categories,
   usingMockData = false,
-  initialCategory = 'all',
+  initialCategory = "all",
 }: CatalogContentProps) {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '77077124221';
+  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "77077124221";
   const customPosterMessage = encodeURIComponent(
-    'Здравствуйте! Не нашёл нужный постер на сайте. Можете помочь подобрать или напечатать свой вариант?'
+    "Здравствуйте! Не нашёл нужный постер на сайте. Можете помочь подобрать или напечатать свой вариант?",
   );
   const customPosterUrl = `https://wa.me/${phone}?text=${customPosterMessage}`;
 
@@ -33,7 +33,7 @@ export function CatalogContent({
         .toLowerCase()
         .includes(deferredSearch.toLowerCase());
       const matchesCategory =
-        activeCategory === 'all' || p.category?.slug === activeCategory;
+        activeCategory === "all" || p.category?.slug === activeCategory;
       return matchesSearch && matchesCategory;
     });
   }, [products, deferredSearch, activeCategory]);
@@ -80,7 +80,7 @@ export function CatalogContent({
             />
             {search && (
               <button
-                onClick={() => setSearch('')}
+                onClick={() => setSearch("")}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#111111]"
               >
                 <X size={16} />
@@ -92,8 +92,8 @@ export function CatalogContent({
           <div className="flex flex-wrap gap-2">
             <CategoryPill
               label="Все"
-              active={activeCategory === 'all'}
-              onClick={() => setActiveCategory('all')}
+              active={activeCategory === "all"}
+              onClick={() => setActiveCategory("all")}
             />
             {categories.map((cat) => (
               <CategoryPill
@@ -109,8 +109,8 @@ export function CatalogContent({
         {/* Results count */}
         <p className="text-sm text-[#666666] mb-6">
           {filtered.length === 0
-            ? 'Ничего не найдено'
-            : `${filtered.length} ${pluralize(filtered.length, 'постер', 'постера', 'постеров')}`}
+            ? "Ничего не найдено"
+            : `${filtered.length} ${pluralize(filtered.length, "постер", "постера", "постеров")}`}
         </p>
 
         {/* Grid */}
@@ -139,8 +139,8 @@ export function CatalogContent({
               </a>
               <button
                 onClick={() => {
-                  setSearch('');
-                  setActiveCategory('all');
+                  setSearch("");
+                  setActiveCategory("all");
                 }}
                 className="rounded-full border border-[#E5E5E5] bg-white px-5 py-3 text-sm font-semibold text-[#111111] transition-colors hover:bg-[#F6F6F6]"
               >
@@ -154,7 +154,6 @@ export function CatalogContent({
               <ProductCard
                 key={product.id}
                 product={product}
-                showButton
                 priority={index < 4}
               />
             ))}
@@ -179,8 +178,8 @@ function CategoryPill({
       onClick={onClick}
       className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
         active
-          ? 'bg-[#111111] text-white'
-          : 'bg-white border border-[#E5E5E5] text-[#666666] hover:border-[#111111] hover:text-[#111111]'
+          ? "bg-[#111111] text-white"
+          : "bg-white border border-[#E5E5E5] text-[#666666] hover:border-[#111111] hover:text-[#111111]"
       }`}
     >
       {label}

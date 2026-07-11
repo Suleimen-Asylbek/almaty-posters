@@ -12,7 +12,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <HeroSection />
+      <HeroSection products={featured} />
       <PopularPosters featuredProducts={featured} />
       <NewArrivals newProducts={newProducts} />
       <CategoriesSection />
