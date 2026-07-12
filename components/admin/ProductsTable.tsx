@@ -11,10 +11,9 @@ import { formatPrice } from '@/lib/utils';
 
 interface ProductsTableProps {
   products: Product[];
-  usingMockData?: boolean;
 }
 
-export function ProductsTable({ products, usingMockData }: ProductsTableProps) {
+export function ProductsTable({ products }: ProductsTableProps) {
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -99,7 +98,7 @@ export function ProductsTable({ products, usingMockData }: ProductsTableProps) {
                 <td className="px-5 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <Link
-                      href={usingMockData ? '#' : `/admin/products/${p.id}/edit`}
+                      href={`/admin/products/${p.id}/edit`}
                       className="p-2 text-[#666666] hover:text-[#111111] hover:bg-[#F6F6F6] rounded-lg transition-colors"
                       title="Редактировать"
                     >
@@ -134,7 +133,7 @@ export function ProductsTable({ products, usingMockData }: ProductsTableProps) {
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <Link
-                    href={usingMockData ? '#' : `/admin/products/${p.id}/edit`}
+                    href={`/admin/products/${p.id}/edit`}
                     className="text-xs font-semibold text-[#111111] flex items-center gap-1"
                   >
                     <Pencil size={12} /> Изменить

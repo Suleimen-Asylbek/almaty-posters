@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminDashboardPage() {
-  const { products, usingMockData } = await getProducts();
+  const products = await getProducts();
 
   return (
     <div className="p-6 lg:p-10">
@@ -22,14 +22,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {usingMockData && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl px-4 py-3">
-          ⚠️ Supabase не настроен — отображаются демо-данные. Добавьте переменные окружения,
-          чтобы подключить реальную базу данных.
-        </div>
-      )}
-
-      <ProductsTable products={products} usingMockData={usingMockData} />
+      <ProductsTable products={products} />
     </div>
   );
 }

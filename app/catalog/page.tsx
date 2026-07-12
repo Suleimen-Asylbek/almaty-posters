@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { getProducts, getCategories } from '@/lib/data';
+import { getPaginatedProducts, getCategories } from '@/lib/data';
+import type { ProductSort } from '@/lib/catalog/config';
 import { CatalogContent } from '@/components/catalog/CatalogContent';
 
 export const metadata: Metadata = {
@@ -9,13 +10,32 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    category?: string;
+    search?: string;
+    sort?: string;
+  }>;
+}
+
+// Only "new" exists in ProductSort today. An unrecognized/absent value
+// falls through to undefined so getPaginatedProducts() applies its own
+// default — the page never invents a fallback value of its own.
+function parseSort(value: string | undefined): ProductSort | undefined {
+  return value === 'new' ? value : undefined;
 }
 
 export default async function CatalogPage({ searchParams }: Props) {
-  const { category } = await searchParams;
-  const [{ products, usingMockData }, { categories }] = await Promise.all([
-    getProducts(),
+  const { page, category, search, sort } = await searchParams;
+  const parsedSort = parseSort(sort);
+
+  const [{ products, pagination }, categories] = await Promise.all([
+    getPaginatedProducts({
+      page: page !== undefined ? Number(page) : undefined,
+      categorySlug: category,
+      search,
+      sort: parsedSort,
+    }),
     getCategories(),
   ]);
 
@@ -23,8 +43,12 @@ export default async function CatalogPage({ searchParams }: Props) {
     <CatalogContent
       products={products}
       categories={categories}
-      usingMockData={usingMockData}
-      initialCategory={category ?? 'all'}
+      pagination={pagination}
+      filters={{
+        category: category ?? 'all',
+        search: search ?? '',
+        sort: parsedSort,
+      }}
     />
   );
 }

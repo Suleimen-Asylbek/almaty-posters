@@ -2,49 +2,51 @@ import { cache } from "react";
 import { createClient } from '@/lib/supabase/server';
 import type { Product, Category } from '@/lib/types';
 import { normalizeProductImages } from '@/lib/product-images';
+import { CATALOG_PAGE_SIZE, DEFAULT_PRODUCT_SORT } from '@/lib/catalog/config';
+import type { ProductSort } from '@/lib/catalog/config';
+import type {
+  GetPaginatedProductsOptions,
+  PaginatedProductsResult,
+  PaginationMeta,
+} from '@/lib/catalog/types';
 
 
 
-export const getProducts = cache(async (): Promise<{
-  products: Product[];
-  usingMockData: boolean;
-}> => {
+export const getProducts = cache(async (): Promise<Product[]> => {
   try {
     const supabase = await createClient();
 
+    // No .limit() here — historical note, not a live constraint. This
+    // used to be .limit(24), a correctness bug fixed at the P0 stage
+    // (see project history). The proper fix — server-side pagination —
+    // has since shipped as getPaginatedProducts(); the public catalog
+    // (/catalog) now reads through that function, not this one.
+    // getProducts() itself stays unbounded on purpose: its remaining
+    // callers (sitemap.ts, the admin dashboard) both genuinely need
+    // every product, not a page of them.
     const { data, error } = await supabase
       .from("products")
       .select(`
         *,
         category:categories(*)
       `)
-      .order("created_at", { ascending: false })
-      .limit(24);
+      .order("created_at", { ascending: false });
 
-if (error) {
-  console.error("GET PRODUCTS ERROR:", error);
-  return { products: [], usingMockData: false };
-}
+    if (error) {
+      console.error("GET PRODUCTS ERROR:", error);
+      return [];
+    }
 
-return {
-  products: ((data ?? []) as Product[]).map((product) => normalizeProductImages(product) as Product),
-  usingMockData: false
-};
+    return ((data ?? []) as Product[]).map((product) => normalizeProductImages(product) as Product);
   } catch (error) {
-  console.error("GET PRODUCTS EXCEPTION:", error);
-  return {
-    products: [],
-    usingMockData: false
-  };
-}
+    console.error("GET PRODUCTS EXCEPTION:", error);
+    return [];
+  }
 });
 
 export const getProductBySlug = cache(async (
   slug: string,
-): Promise<{
-  product: Product | null;
-  usingMockData: boolean;
-}> => {
+): Promise<Product | null> => {
   try {
     const supabase = await createClient();
 
@@ -59,31 +61,19 @@ export const getProductBySlug = cache(async (
 
     if (error) {
       console.error('GET PRODUCT BY SLUG ERROR:', error);
-      return {
-        product: null,
-        usingMockData: false
-      };
+      return null;
     }
 
-    return {
-      product: normalizeProductImages(data) as Product,
-      usingMockData: false
-    };
+    return normalizeProductImages(data) as Product;
   } catch (error) {
     console.error('GET PRODUCT BY SLUG EXCEPTION:', error);
-    return {
-      product: null,
-      usingMockData: false
-    };
+    return null;
   }
 });
 
 export const getProductById = cache(async (
   id: string
-): Promise<{
-  product: Product | null;
-  usingMockData: boolean;
-}> => {
+): Promise<Product | null> => {
   try {
     const supabase = await createClient();
 
@@ -98,29 +88,17 @@ export const getProductById = cache(async (
 
     if (error) {
       console.error('GET PRODUCT BY ID ERROR:', error);
-      return {
-        product: null,
-        usingMockData: false
-      };
+      return null;
     }
 
-    return {
-      product: normalizeProductImages(data) as Product,
-      usingMockData: false
-    };
+    return normalizeProductImages(data) as Product;
   } catch (error) {
     console.error('GET PRODUCT BY ID EXCEPTION:', error);
-    return {
-      product: null,
-      usingMockData: false
-    };
+    return null;
   }
 });
 
-export const getCategories = cache(async (): Promise<{
-  categories: Category[];
-  usingMockData: boolean;
-}> => {
+export const getCategories = cache(async (): Promise<Category[]> => {
   try {
     const supabase = await createClient();
 
@@ -131,22 +109,44 @@ export const getCategories = cache(async (): Promise<{
 
     if (error) {
       console.error('GET CATEGORIES ERROR:', error);
-      return {
-        categories: [],
-        usingMockData: false
-      };
+      return [];
     }
 
-    return {
-      categories: (data ?? []) as Category[],
-      usingMockData: false
-    };
+    return (data ?? []) as Category[];
   } catch (error) {
     console.error('GET CATEGORIES EXCEPTION:', error);
-    return {
-      categories: [],
-      usingMockData: false
-    };
+    return [];
+  }
+});
+
+/**
+ * A single-primitive lookup, so React's cache() memoizes it correctly by
+ * value — unlike getPaginatedProducts(), which takes an options object.
+ * Exists specifically so getPaginatedProducts() doesn't need to know how
+ * category filtering is implemented at the query level (join, subquery,
+ * whatever) — it just needs a category_id.
+ */
+export const getCategoryBySlug = cache(async (
+  slug: string,
+): Promise<Category | null> => {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error('GET CATEGORY BY SLUG ERROR:', error);
+      return null;
+    }
+
+    return data as Category | null;
+  } catch (error) {
+    console.error('GET CATEGORY BY SLUG EXCEPTION:', error);
+    return null;
   }
 });
 
@@ -217,3 +217,164 @@ export const getNewProducts = cache(async () => {
     return [];
   }
 });
+
+/**
+ * Applies sort to a products query builder. A dedicated function even
+ * though only "new" exists today — adding "price-asc" / "popular" later
+ * means adding a case here, not touching getPaginatedProducts()'s query
+ * assembly at all.
+ *
+ * Typed loosely (not exported, not part of any public contract):
+ * Supabase's PostgrestFilterBuilder chain type is deeply generic and
+ * fighting it for a five-line private helper isn't worth it. The actual
+ * safety that matters — that getPaginatedProducts()'s public inputs and
+ * outputs are fully typed — is unaffected, since this function is never
+ * called from outside this module.
+ */
+function buildProductSort(query: any, sort: ProductSort) {
+  switch (sort) {
+    case "new":
+    default:
+      return query.order("created_at", { ascending: false });
+  }
+}
+
+/**
+ * The public catalog's read path. Category and search are resolved in
+ * the SAME query as the same filter pass over the same dataset — not two
+ * migrations at different times. Splitting them would mean a window
+ * where category is server-filtered but search still runs client-side
+ * over an already-paginated (and therefore incomplete) products array,
+ * producing wrong "no results" for real matches outside the current
+ * page. See the architecture review for why that's not an acceptable
+ * intermediate state, not just a rough edge.
+ *
+ * Category filtering resolves categorySlug to a category_id via
+ * getCategoryBySlug() first, then filters products with a plain .eq() —
+ * this function has no idea whether that lookup happens via a join, a
+ * subquery, or a cached table scan. It only knows "products with this
+ * category_id", same as if a caller had passed a category_id directly.
+ *
+ * page is normalized here, not by callers: non-numeric, negative, zero,
+ * or fractional input all fall back to page 1; input beyond the last
+ * real page clamps down to the last page once the true count is known
+ * (self-heals with one extra query only in that case — the common case
+ * stays a single round trip). Every RSC that calls this gets a valid
+ * page back without re-implementing the same guard.
+ *
+ * Deliberately NOT wrapped in React's cache(): cache() memoizes by
+ * argument reference/value, and every other cached function here takes
+ * either no arguments or a single primitive (a slug, an id) — both
+ * memoize correctly by value. This function takes an options *object*;
+ * a fresh literal built per call (the normal way callers will use it,
+ * e.g. from searchParams) has a new identity every time, so cache()
+ * would never actually hit and would just add overhead for nothing.
+ */
+export async function getPaginatedProducts(
+  options: GetPaginatedProductsOptions = {},
+): Promise<PaginatedProductsResult> {
+  const pageSize = CATALOG_PAGE_SIZE;
+  const sort = options.sort ?? DEFAULT_PRODUCT_SORT;
+
+  // NaN-safe: Math.max(1, NaN) is NaN in JS, so a plain Math.max guard
+  // over unparsed input (e.g. `?page=abc` → Number("abc") → NaN) would
+  // silently poison every downstream calculation. Number.isFinite()
+  // catches NaN and ±Infinity before Math.max ever runs.
+  const requestedPage = Number(options.page);
+  const normalizedPage = Number.isFinite(requestedPage)
+    ? Math.max(1, Math.floor(requestedPage))
+    : 1;
+
+  const buildEmptyMeta = (page: number): PaginationMeta => ({
+    page,
+    pageSize,
+    totalCount: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+    from: 0,
+    to: 0,
+  });
+
+  try {
+    const supabase = await createClient();
+
+    let categoryId: string | null = null;
+    if (options.categorySlug) {
+      const category = await getCategoryBySlug(options.categorySlug);
+      if (!category) {
+        // A slug that matches no category can match no products —
+        // that's a real, correct empty result, not an error.
+        return { products: [], pagination: buildEmptyMeta(normalizedPage) };
+      }
+      categoryId = category.id;
+    }
+
+    const buildBaseQuery = () => {
+      let query = supabase
+        .from("products")
+        .select(`*, category:categories(*)`, { count: "exact" });
+
+      if (categoryId) {
+        query = query.eq("category_id", categoryId);
+      }
+
+      const trimmedSearch = options.search?.trim();
+      if (trimmedSearch) {
+        query = query.ilike("title", `%${trimmedSearch}%`);
+      }
+
+      return buildProductSort(query, sort);
+    };
+
+    const rangeFor = (page: number) => {
+      const from = (page - 1) * pageSize;
+      return { from, to: from + pageSize - 1 };
+    };
+
+    let page = normalizedPage;
+    let { from, to } = rangeFor(page);
+    let { data, error, count } = await buildBaseQuery().range(from, to);
+
+    if (error) {
+      console.error("GET PAGINATED PRODUCTS ERROR:", error);
+      return { products: [], pagination: buildEmptyMeta(normalizedPage) };
+    }
+
+    const totalCount = count ?? 0;
+    const totalPages = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
+
+    // Self-heal: page was beyond the real last page. Re-run once for
+    // the clamped page rather than returning an empty products array
+    // for a page number that was never valid to begin with.
+    if (totalPages > 0 && page > totalPages) {
+      page = totalPages;
+      ({ from, to } = rangeFor(page));
+      const clamped = await buildBaseQuery().range(from, to);
+      if (clamped.error) {
+        console.error("GET PAGINATED PRODUCTS ERROR (clamped):", clamped.error);
+        return { products: [], pagination: buildEmptyMeta(normalizedPage) };
+      }
+      data = clamped.data;
+    }
+
+    return {
+      products: ((data ?? []) as Product[]).map(
+        (product) => normalizeProductImages(product) as Product,
+      ),
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        from: totalCount === 0 ? 0 : from + 1,
+        to: Math.min(to + 1, totalCount),
+      },
+    };
+  } catch (error) {
+    console.error("GET PAGINATED PRODUCTS EXCEPTION:", error);
+    return { products: [], pagination: buildEmptyMeta(normalizedPage) };
+  }
+}

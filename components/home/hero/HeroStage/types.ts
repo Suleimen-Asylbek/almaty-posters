@@ -62,16 +62,20 @@ export interface HeroStageProps {
    * Extra classes merged onto the ring's own interactive viewport (the
    * element carrying `aspect-[4/5] max-w-xl` by default). HeroStage owns
    * how the ring renders; HeroSection owns Hero's composition — this is
-   * the seam between them. Defaults to "" so every existing call site is
-   * visually unchanged unless it opts in.
+   * the seam between them. Defaults to undefined so every existing call
+   * site is visually unchanged unless it opts in.
    *
-   * Verified not a conflict: HeroStage always merges this through `cn()`
-   * (clsx + tailwind-merge) with the defaults listed first and this prop
-   * last — e.g. `cn("aspect-[4/5] ...", viewportClassName)`. tailwind-
-   * merge recognizes `aspect-*` (including arbitrary values) as a single
-   * conflicting class group, so passing `aspect-[16/9]` here correctly
-   * drops the default `aspect-[4/5]` rather than emitting both classes.
-   * Don't reorder those `cn()` calls (viewportClassName must stay last).
+   * Structurally conflict-free, not merge-order-dependent: HeroStage
+   * resolves a single `viewportSizingClassName` internally — either the
+   * default `"aspect-[4/5] max-w-xl"` OR this prop, never both — before
+   * that one value ever reaches `cn()`. This was previously implemented
+   * by relying on `tailwind-merge` to dedupe a default `aspect-[4/5]`
+   * against this prop's own `aspect-*` class when both were passed to
+   * `cn()` together; that assumption was found to be unverified (there's
+   * no guarantee tailwind-merge resolves conflicting *arbitrary-value*
+   * `aspect-*` classes correctly) and was replaced. Do not reintroduce
+   * a call site that passes both the default and this prop into the same
+   * `cn()` call — see HeroStage.tsx's `viewportSizingClassName`.
    */
   readonly viewportClassName?: string;
 }

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewProductPage() {
-  const { categories } = await getCategories();
+  const categories = await getCategories();
 
   return (
     <div className="p-6 lg:p-10">

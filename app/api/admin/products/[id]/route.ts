@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isAuthorizedAdminEmail } from '@/lib/supabase/auth';
 import { buildImagePayload } from '@/lib/product-images';
 
 async function verifyAdmin() {
@@ -13,8 +14,7 @@ async function verifyAdmin() {
     return { authorized: false as const, error: 'Не авторизован', status: 401 };
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && user.email !== adminEmail) {
+  if (!isAuthorizedAdminEmail(user.email)) {
     return { authorized: false as const, error: 'Доступ запрещён', status: 403 };
   }
 

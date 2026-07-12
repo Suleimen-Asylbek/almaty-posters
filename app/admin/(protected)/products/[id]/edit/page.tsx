@@ -14,7 +14,7 @@ interface Props {
 export default async function EditProductPage({ params }: Props) {
   const { id } = await params;
 
-  const [{ product }, { categories }] = await Promise.all([
+  const [product, categories] = await Promise.all([
     getProductById(id),
     getCategories(),
   ]);

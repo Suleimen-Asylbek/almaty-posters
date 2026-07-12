@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isAuthorizedAdminEmail } from '@/lib/supabase/auth';
 import { buildImagePayload } from '@/lib/product-images';
 
 
@@ -15,8 +16,7 @@ async function verifyAdmin() {
     return { authorized: false as const, error: 'Не авторизован', status: 401 };
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && user.email !== adminEmail) {
+  if (!isAuthorizedAdminEmail(user.email)) {
     return { authorized: false as const, error: 'Доступ запрещён', status: 403 };
   }
 
@@ -99,62 +99,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const auth = await verifyAdmin();
-  if (!auth.authorized) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("products")
-    .select(`
-      id,
-      title,
-      slug,
-      image_url,
-      images,
-      price_30x40,
-      price_40x50,
-      price_50x70,
-      featured,
-      is_new,
-      category:categories(name)
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ products: data });
-}
-
-export async function DELETE(req: NextRequest) {
-  const auth = await verifyAdmin();
-  if (!auth.authorized) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
-
-  if (!id) {
-    return NextResponse.json({ error: 'ID требуется' }, { status: 400 });
-  }
-
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from('products')
-    .delete()
-    .eq('id', id)
-    .select();
-
-
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ message: 'Продукт удален', product: data });
-}
