@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils";
 import { SizeSelector } from "@/components/SizeSelector";
 import ImageGallery from "@/components/product/ImageGallery";
+import { buildCategoryHref } from "@/lib/catalog/url";
 
 interface ProductDetailProps {
   product: Product;
@@ -64,7 +65,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
           <div className="flex flex-col">
             {product.category && (
-              <Link href={`/catalog?category=${product.category.slug}`}>
+              <Link href={buildCategoryHref(product.category.slug)}>
                 <span className="inline-block bg-[#F6F6F6] text-[#666666] text-xs font-semibold px-3 py-1.5 rounded-full mb-4 hover:bg-[#E5E5E5] transition-colors">
                   {product.category.name}
                 </span>

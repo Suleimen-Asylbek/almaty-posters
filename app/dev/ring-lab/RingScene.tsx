@@ -66,8 +66,19 @@ export function RingScene({
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
 
+  // Keeps onRenderTick current without putting it in the mount-only
+  // effect's deps below — the effect is meant to fire exactly once (this
+  // is a dev-tool render counter), and a plain deps array with
+  // onRenderTick would either violate exhaustive-deps or re-fire the
+  // effect on every render if the parent doesn't memoize the callback.
+  // Keeping the latest callback in a ref, updated in the render body,
+  // gets the correct behavior (call whatever the current onRenderTick
+  // is, exactly once on mount) without either of those problems.
+  const onRenderTickRef = useRef(onRenderTick);
+  onRenderTickRef.current = onRenderTick;
+
   useEffect(() => {
-    onRenderTick?.(renderCountRef.current);
+    onRenderTickRef.current?.(renderCountRef.current);
   }, []);
 
   const sequence = useMemo(

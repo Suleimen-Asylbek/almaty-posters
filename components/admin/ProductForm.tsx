@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Loader2, Trash2, Upload, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/utils";
 import type { Category, Product } from "@/lib/types";
 
@@ -162,7 +161,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     }
 
     const urls: string[] = [];
-    const supabase = createClient();
 
     for (let index = 0; index < images.length; index += 1) {
       const entry = images[index];
@@ -181,16 +179,18 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       const fileExt = entry.file.name.split(".").pop();
       const fileName = `${slugify(title) || "poster"}-${Date.now()}-${index}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("posters")
-        .upload(fileName, entry.file, { upsert: false });
+      const body = new FormData();
+      body.append("file", entry.file);
+      body.append("fileName", fileName);
 
-      if (uploadError) {
-        throw new Error(`Ошибка загрузки ${entry.file.name}: ${uploadError.message}`);
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error ?? `Ошибка загрузки ${entry.file.name}`);
       }
 
-      const { data } = supabase.storage.from("posters").getPublicUrl(fileName);
-      urls.push(data.publicUrl);
+      urls.push(payload.url);
     }
 
     return urls;

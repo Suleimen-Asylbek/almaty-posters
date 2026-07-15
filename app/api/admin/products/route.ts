@@ -1,27 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { isAuthorizedAdminEmail } from '@/lib/supabase/auth';
+import { verifyAdmin } from '@/lib/supabase/auth';
 import { buildImagePayload } from '@/lib/product-images';
 
 
 
-async function verifyAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { authorized: false as const, error: 'Не авторизован', status: 401 };
-  }
-
-  if (!isAuthorizedAdminEmail(user.email)) {
-    return { authorized: false as const, error: 'Доступ запрещён', status: 403 };
-  }
-
-  return { authorized: true as const, user };
-}
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin();

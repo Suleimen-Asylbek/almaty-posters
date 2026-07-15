@@ -3,90 +3,80 @@ import { ArrowRight } from "lucide-react";
 
 import type { Product } from "@/lib/types";
 import { HeroStage } from "./HeroStage";
-import { FilmStrip } from "./FilmStrip";
 import { HeroBackground } from "./HeroBackground";
 
 interface HeroSectionProps {
   products: Product[];
 }
 
-/**
- * Full-width viewport shape for the ring row. A single class string —
- * deliberately never combined with any other aspect-* class anywhere in
- * the tree (see HeroStage.tsx's viewportSizingClassName resolution) —
- * so there is no cascade ambiguity about which aspect-ratio actually
- * wins. Still a starting point, not a final number: pick it here, not
- * by hunting for an inline className in JSX.
- */
-const HERO_STAGE_VIEWPORT_CLASS = "aspect-[16/10] sm:aspect-[21/9] lg:aspect-[3/1] max-w-none";
-
-/**
- * Two-level Hero:
- *
- *  LEVEL 1 (first screen) — a two-column row: compact text on the left,
- *  a slow decorative FilmStrip on the right. Both exist to give the eye
- *  something to settle on for a second before the ring takes over below
- *  — neither is the main object.
- *
- *  LEVEL 2 — the 3D ring, full viewport width (a genuine `w-screen`
- *  breakout, not boxed in a max-width container) so its perspective
- *  reads correctly and it dominates the composition the way a single
- *  hero object should.
- *
- * HeroBackground spans both levels as one continuous layer so there's
- * no visible seam between "the text row" and "the ring row" — one
- * scene, not two stacked sections.
- */
 export function HeroSection({ products }: HeroSectionProps) {
   return (
-    <section className="relative pt-10 lg:pt-12 pb-16 lg:pb-24 bg-white overflow-hidden">
+    <section className="relative overflow-hidden bg-white pb-12 pt-8 lg:pb-20 lg:pt-14">
       <HeroBackground />
 
-      {/* ── Уровень 1: текст + FilmStrip, первый экран ── */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-center">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
+        {/* Two-column grid: text left, carousel right */}
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_420px] lg:gap-16 xl:grid-cols-[1fr_460px]">
 
-          {/* Текст — компактный, один эмоциональный statement, один CTA. */}
-          <div className="max-w-xl">
-
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#999999] block">
-              Almaty Posters · Алматы, Казахстан
+          {/* ── Text block ── */}
+          <div className="max-w-lg">
+            <span className="block text-xs font-semibold uppercase tracking-widest text-[#999999]">
+              Almaty Posters · Алматы
             </span>
 
-            <h1 className="mt-3 text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight text-[#111111] leading-[1.05]">
-              Искусство, которое меняет твою комнату
+            <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight text-[#111111] sm:text-5xl lg:text-[3.25rem]">
+              Искусство,{" "}
+              <span className="text-[#111111]">которое меняет</span>{" "}
+              твою комнату
             </h1>
 
-            <div className="mt-6">
+            <p className="mt-5 text-base leading-relaxed text-[#555555] sm:text-lg">
+              Постеры на заказ из Алматы. Выбери готовый или пришли
+              свой дизайн — напечатаем и доставим.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/catalog"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#111111] px-6 py-3.5 text-white transition hover:bg-black"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#111111] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-black active:scale-95"
               >
-                Выбрать постер
-                <ArrowRight size={18} />
+                Смотреть постеры
+                <ArrowRight size={16} />
+              </Link>
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#E5E5E5] bg-white px-6 py-3.5 text-sm font-semibold text-[#111111] transition hover:border-[#CCCCCC] active:scale-95"
+              >
+                О нас
               </Link>
             </div>
 
+            {/* Subtle social proof */}
+            <div className="mt-8 flex items-center gap-6 border-t border-[#F0F0F0] pt-6">
+              <div>
+                <p className="text-xl font-black text-[#111111]">100+</p>
+                <p className="text-xs text-[#999999]">постеров в каталоге</p>
+              </div>
+              <div className="h-8 w-px bg-[#EBEBEB]" />
+              <div>
+                <p className="text-xl font-black text-[#111111]">3 размера</p>
+                <p className="text-xs text-[#999999]">30×40, 40×50, 50×70</p>
+              </div>
+              <div className="h-8 w-px bg-[#EBEBEB]" />
+              <div>
+                <p className="text-xl font-black text-[#111111]">Алматы</p>
+                <p className="text-xs text-[#999999]">печать и доставка</p>
+              </div>
+            </div>
           </div>
 
-          {/* FilmStrip — вертикальная лента, атмосфера, не второй объект. */}
-          <div className="hidden lg:block h-[420px]">
-            <FilmStrip products={products} />
+          {/* ── Carousel ── */}
+          <div className="w-full">
+            <HeroStage products={products} />
           </div>
 
         </div>
       </div>
-
-      {/* ── Уровень 2: кольцо, full-bleed — 100% ширины экрана,
-          не ограничено родительским max-width, чтобы perspective
-          работала на полную ширину viewport. ── */}
-      <div className="relative z-0 mt-10 lg:mt-16 w-screen left-1/2 -translate-x-1/2 px-4 sm:px-6">
-        <HeroStage
-          products={products}
-          viewportClassName={HERO_STAGE_VIEWPORT_CLASS}
-        />
-      </div>
-
     </section>
   );
 }

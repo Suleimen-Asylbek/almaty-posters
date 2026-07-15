@@ -82,3 +82,31 @@ export async function getAdminUser(): Promise<User | null> {
     return null;
   }
 }
+
+/**
+ * The API-route counterpart to requireAdmin() above — same check
+ * (isAuthorizedAdminEmail), but returns a result object instead of
+ * redirecting, since API routes need to respond with JSON + a status
+ * code, not a Next.js redirect. Was duplicated verbatim across all three
+ * admin API routes (products, products/[id], upload); centralized here
+ * so there's exactly one place that can get this check wrong, not three.
+ */
+export async function verifyAdmin(): Promise<
+  | { authorized: true; user: User }
+  | { authorized: false; error: string; status: number }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { authorized: false, error: 'Не авторизован', status: 401 };
+  }
+
+  if (!isAuthorizedAdminEmail(user.email)) {
+    return { authorized: false, error: 'Доступ запрещён', status: 403 };
+  }
+
+  return { authorized: true, user };
+}

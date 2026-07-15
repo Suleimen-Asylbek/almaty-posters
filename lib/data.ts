@@ -119,37 +119,6 @@ export const getCategories = cache(async (): Promise<Category[]> => {
   }
 });
 
-/**
- * A single-primitive lookup, so React's cache() memoizes it correctly by
- * value — unlike getPaginatedProducts(), which takes an options object.
- * Exists specifically so getPaginatedProducts() doesn't need to know how
- * category filtering is implemented at the query level (join, subquery,
- * whatever) — it just needs a category_id.
- */
-export const getCategoryBySlug = cache(async (
-  slug: string,
-): Promise<Category | null> => {
-  try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('slug', slug)
-      .maybeSingle();
-
-    if (error) {
-      console.error('GET CATEGORY BY SLUG ERROR:', error);
-      return null;
-    }
-
-    return data as Category | null;
-  } catch (error) {
-    console.error('GET CATEGORY BY SLUG EXCEPTION:', error);
-    return null;
-  }
-});
-
 export const getFeaturedProducts = cache(async () => {
   try {
     const supabase = await createClient();
@@ -249,11 +218,24 @@ function buildProductSort(query: any, sort: ProductSort) {
  * page. See the architecture review for why that's not an acceptable
  * intermediate state, not just a rough edge.
  *
- * Category filtering resolves categorySlug to a category_id via
- * getCategoryBySlug() first, then filters products with a plain .eq() —
- * this function has no idea whether that lookup happens via a join, a
- * subquery, or a cached table scan. It only knows "products with this
- * category_id", same as if a caller had passed a category_id directly.
+ * Category filtering happens IN the same products query via an embedded
+ * `categories!inner(*)` join filtered with `.eq('category.slug', ...)` —
+ * not a separate getCategoryBySlug() round-trip first. (An earlier
+ * version did exactly that: look up the category, then query products —
+ * two sequential Supabase calls for one page view, on top of the
+ * category *list* the catalog page separately fetches for the filter
+ * pills. Same table, two extra round-trips. Production audit fix.) The
+ * `!inner` join is only used when a category filter is actually active:
+ * unfiltered queries keep the default left join (`categories(*)`, the
+ * same as every other query in this file), so a product with a null
+ * category_id still appears when browsing "all" — `!inner` would
+ * silently drop it, which is correct only once a category filter says
+ * "must have a matching category" in the first place.
+ *
+ * A slug that matches no category now falls out of the *same* query as a
+ * natural zero-row result (the inner join has nothing to match), not a
+ * special early-return branch — one less state to keep in sync with the
+ * rest of this function's pagination math.
  *
  * page is normalized here, not by callers: non-numeric, negative, zero,
  * or fractional input all fall back to page 1; input beyond the last
@@ -299,29 +281,35 @@ export async function getPaginatedProducts(
   try {
     const supabase = await createClient();
 
-    let categoryId: string | null = null;
-    if (options.categorySlug) {
-      const category = await getCategoryBySlug(options.categorySlug);
-      if (!category) {
-        // A slug that matches no category can match no products —
-        // that's a real, correct empty result, not an error.
-        return { products: [], pagination: buildEmptyMeta(normalizedPage) };
-      }
-      categoryId = category.id;
-    }
+    const categorySlug = options.categorySlug?.trim();
 
     const buildBaseQuery = () => {
+      // Only switch to an inner join when a category filter is actually
+      // requested — see the doc comment above for why the default path
+      // must stay a left join.
+      const selectClause = categorySlug
+        ? `*, category:categories!inner(*)`
+        : `*, category:categories(*)`;
+
       let query = supabase
         .from("products")
-        .select(`*, category:categories(*)`, { count: "exact" });
+        .select(selectClause, { count: "exact" });
 
-      if (categoryId) {
-        query = query.eq("category_id", categoryId);
+      if (categorySlug) {
+        query = query.eq("category.slug", categorySlug);
       }
 
       const trimmedSearch = options.search?.trim();
       if (trimmedSearch) {
-        query = query.ilike("title", `%${trimmedSearch}%`);
+        // Escape LIKE/ILIKE's own special characters (% = any sequence,
+        // _ = any single character) in the *user's* input before it's
+        // wrapped in our own %...% pattern. Without this, searching for
+        // a title that genuinely contains "_" (e.g. a literal
+        // underscore) matches any single character in that position
+        // instead of the literal underscore — a real over-matching bug,
+        // not a hypothetical one, for any title containing '%' or '_'.
+        const escapedSearch = trimmedSearch.replace(/[%_]/g, (char) => `\\${char}`);
+        query = query.ilike("title", `%${escapedSearch}%`);
       }
 
       return buildProductSort(query, sort);

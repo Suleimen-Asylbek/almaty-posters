@@ -4,18 +4,21 @@ import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { CustomPosterSection } from "@/components/home/CustomPosterSection";
 import { WhyUsSection } from "@/components/home/WhyUsSection";
 import { InstagramSection } from "@/components/home/InstagramSection";
-import { getFeaturedProducts, getNewProducts } from "@/lib/data";
+import { getFeaturedProducts, getNewProducts, getCategories } from "@/lib/data";
 
 export default async function HomePage() {
-  const featured = await getFeaturedProducts();
-  const newProducts = await getNewProducts();
+  const [featured, newProducts, categories] = await Promise.all([
+    getFeaturedProducts(),
+    getNewProducts(),
+    getCategories(),
+  ]);
 
   return (
     <>
       <HeroSection products={featured} />
       <PopularPosters featuredProducts={featured} />
       <NewArrivals newProducts={newProducts} />
-      <CategoriesSection />
+      <CategoriesSection categories={categories} />
       <WhyUsSection />
       <InstagramSection />
       <CustomPosterSection />

@@ -65,20 +65,16 @@ create policy "Public can view poster images"
   to anon, authenticated
   using (bucket_id = 'posters');
 
-create policy "Authenticated users can upload poster images"
-  on storage.objects for insert
-  to authenticated
-  with check (bucket_id = 'posters');
-
-create policy "Authenticated users can update poster images"
-  on storage.objects for update
-  to authenticated
-  using (bucket_id = 'posters');
-
-create policy "Authenticated users can delete poster images"
-  on storage.objects for delete
-  to authenticated
-  using (bucket_id = 'posters');
+-- No insert/update/delete policy for anon/authenticated, intentionally.
+-- All poster-image writes go through POST /api/admin/upload, which uses
+-- the service_role client (lib/supabase/admin.ts) and is gated by
+-- isAuthorizedAdminEmail() at the application layer — the same admin
+-- check every other write in this project already goes through. The
+-- service_role key bypasses RLS entirely, so it needs no policy here to
+-- write; browser clients (anon key, any authenticated Supabase user)
+-- correspondingly get none, closing the gap where any authenticated
+-- Supabase user — not just the app's one admin — could previously write
+-- to this public bucket directly.
 
 -- ---------------------------------------------------------
 -- Seed categories (matches business requirements)

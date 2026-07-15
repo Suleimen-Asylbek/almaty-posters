@@ -3,47 +3,13 @@ import { MessageCircle, Search, SearchX, X } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import type { Product, Category } from "@/lib/types";
 import type { PaginationMeta } from "@/lib/catalog/types";
-import type { ProductSort } from "@/lib/catalog/config";
-
-interface CatalogFilters {
-  /** "all" when no category filter is active. */
-  category: string;
-  /** "" when no search filter is active. */
-  search: string;
-  sort?: ProductSort;
-}
+import { buildCatalogHref, type CatalogFilters } from "@/lib/catalog/url";
 
 interface CatalogContentProps {
   products: Product[];
   categories: Category[];
   pagination: PaginationMeta;
   filters: CatalogFilters;
-}
-
-/**
- * Builds a /catalog URL that preserves every current filter except the
- * ones explicitly overridden. Any override of category/search/sort omits
- * `page` unless the override itself sets one — which is what makes
- * "changing a filter resets to page 1" true by construction, not by an
- * explicit reset step.
- */
-function buildCatalogHref(
-  filters: CatalogFilters,
-  overrides: Partial<CatalogFilters> & { page?: number } = {},
-): string {
-  const category = overrides.category ?? filters.category;
-  const search = overrides.search ?? filters.search;
-  const sort = overrides.sort ?? filters.sort;
-  const page = overrides.page;
-
-  const params = new URLSearchParams();
-  if (category && category !== "all") params.set("category", category);
-  if (search) params.set("search", search);
-  if (sort) params.set("sort", sort);
-  if (page && page > 1) params.set("page", String(page));
-
-  const query = params.toString();
-  return query ? `/catalog?${query}` : "/catalog";
 }
 
 /**
