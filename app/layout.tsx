@@ -21,7 +21,10 @@ export const metadata: Metadata = {
     "печать постеров",
   ],
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
   },
   openGraph: {
     title: "Almaty Posters — Постеры для твоей комнаты",
@@ -31,6 +34,14 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     siteName: "Almaty Posters",
     url: "https://almatyposters.kz",
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Almaty Posters — постеры для твоей комнаты',
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

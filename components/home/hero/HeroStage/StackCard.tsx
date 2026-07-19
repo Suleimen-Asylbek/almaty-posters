@@ -79,8 +79,8 @@ function StackCardImpl({
         className={cn(
           "group relative block aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#E8E8E8] bg-[#F6F6F6]",
           isFront
-            ? "shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] transition-shadow duration-300 hover:shadow-[0_40px_100px_-16px_rgba(0,0,0,0.55)]"
-            : "shadow-[0_8px_24px_-8px_rgba(0,0,0,0.18)]",
+            ? "shadow-[0_32px_80px_-16px_rgba(0,0,0,0.15)] transition-shadow duration-300 hover:shadow-[0_40px_100px_-16px_rgba(0,0,0,0.2)]"
+            : "shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08)]",
         )}
         onClick={(e) => {
           if (!isFront) e.preventDefault();
@@ -97,13 +97,14 @@ function StackCardImpl({
           className="select-none object-cover"
           unoptimized={shouldUnoptimize}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent px-5 pb-5 pt-16">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent px-5 pb-5 pt-16">
           <p className="text-sm font-bold leading-snug text-white drop-shadow">
             {item.title}
           </p>
-          <p className="mt-1 text-xs font-medium text-white/70">{item.priceLabel}</p>
+          <p className="mt-1 text-xs font-medium text-white/80">{item.priceLabel}</p>
         </div>
       </Link>
+
     </motion.div>
   );
 }

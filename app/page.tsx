@@ -3,6 +3,7 @@ import { PopularPosters, NewArrivals } from "@/components/home/PopularPosters";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { CustomPosterSection } from "@/components/home/CustomPosterSection";
 import { WhyUsSection } from "@/components/home/WhyUsSection";
+import { ReviewsSection } from "@/components/home/ReviewsSection";
 import { InstagramSection } from "@/components/home/InstagramSection";
 import { getFeaturedProducts, getNewProducts, getCategories } from "@/lib/data";
 
@@ -17,11 +18,12 @@ export default async function HomePage() {
     <>
       <HeroSection products={featured} />
       <PopularPosters featuredProducts={featured} />
-      <NewArrivals newProducts={newProducts} />
+      <ReviewsSection />
       <CategoriesSection categories={categories} />
+      <CustomPosterSection />
+      <NewArrivals newProducts={newProducts} />
       <WhyUsSection />
       <InstagramSection />
-      <CustomPosterSection />
     </>
   );
 }

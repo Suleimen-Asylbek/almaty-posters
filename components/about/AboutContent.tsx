@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FadeIn } from '@/components/ui/FadeIn';
+import { FadeIn } from '@/components/ui/motion/FadeIn';
 
 export function AboutContent() {
   return (
@@ -70,18 +70,28 @@ export function AboutContent() {
               <p className="text-xs text-[#666666] mt-1">Категорий</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-black text-[#111111]">100%</p>
-              <p className="text-xs text-[#666666] mt-1">Любви к деталям</p>
+              <p className="text-3xl font-black text-[#111111]">2024</p>
+              <p className="text-xs text-[#666666] mt-1">год основания</p>
             </div>
           </FadeIn>
 
           <FadeIn delay={0.25} className="mt-14 text-center">
-            <Link
-              href="/catalog"
-              className="inline-flex items-center justify-center gap-2 bg-[#111111] text-white font-semibold px-8 py-4 rounded-full hover:bg-[#333333] transition-colors duration-200 text-sm"
-            >
-              Смотреть каталог
-            </Link>
+            <div className="mt-16 flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/catalog"
+                className="inline-flex items-center justify-center gap-2 bg-[#111111] text-white font-bold px-8 py-3.5 rounded-2xl text-sm hover:bg-black transition-colors"
+              >
+                Смотреть постеры →
+              </Link>
+              <a
+                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '77077124221'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 border border-[#E5E5E5] text-[#111111] font-semibold px-8 py-3.5 rounded-2xl text-sm hover:border-[#CCCCCC] transition-colors"
+              >
+                Написать нам
+              </a>
+            </div>
           </FadeIn>
         </div>
       </section>

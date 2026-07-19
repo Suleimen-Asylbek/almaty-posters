@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, MessageCircle, Truck, Package } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Product, PosterSize } from "@/lib/types";
 import {
   formatPrice,
@@ -11,16 +12,31 @@ import {
   buildWhatsAppUrl,
   buildWhatsAppMessageUrl,
 } from "@/lib/utils";
+import { RelatedProducts } from "@/components/catalog/RelatedProducts";
 import { SizeSelector } from "@/components/SizeSelector";
 import ImageGallery from "@/components/product/ImageGallery";
 import { buildCategoryHref } from "@/lib/catalog/url";
 
 interface ProductDetailProps {
   product: Product;
+  relatedProducts: Product[];
 }
 
-export function ProductDetail({ product }: ProductDetailProps) {
+export function ProductDetail({ product, relatedProducts }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState<PosterSize>("40x50");
+  const orderButtonRef = useRef<HTMLAnchorElement>(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  useEffect(() => {
+    const el = orderButtonRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const images = useMemo(() => {
     if (Array.isArray(product.images) && product.images.length > 0) {
@@ -96,10 +112,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 selectedSize={selectedSize}
                 onChange={setSelectedSize}
                 prices={prices}
+                recommendedSize="40x50"
               />
             </div>
 
             <a
+              ref={orderButtonRef}
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -109,11 +127,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
               Заказать в WhatsApp
             </a>
 
+            <p className="mt-2 text-center text-[11px] text-[#999999]">
+              Обычно отвечаем за 5–10 минут
+            </p>
+
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 bg-[#F6F6F6] rounded-xl p-3">
                 <Truck size={16} className="text-[#666666] shrink-0" />
-                <p className="text-xs text-[#666666] leading-tight">
-                  Доставка по Алматы и всему Казахстану
+                <p className="text-xs text-secondary leading-tight">
+                  Доставка по Алматы: <span className="font-semibold text-[#111111]">1–2 дня</span>
                 </p>
               </div>
               <div className="flex items-center gap-2 bg-[#F6F6F6] rounded-xl p-3">
@@ -123,6 +145,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 </p>
               </div>
             </div>
+            
+            <p className="mt-3 text-center text-[11px] text-[#999999]">
+              🛡 Если постер пришёл повреждённым — заменим бесплатно
+            </p>
 
             <div className="mt-6 border-t border-[#E5E5E5] pt-6 space-y-2.5">
               <DetailRow label="Материал" value="Матовая фотобумага 230 г/м²" />
@@ -150,7 +176,28 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </div>
           </div>
         </div>
+        <RelatedProducts products={relatedProducts} currentSlug={product.slug} />
       </div>
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5E5E5] bg-white/95 backdrop-blur-sm px-4 py-3 md:hidden"
+          >
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#111111] text-white font-bold py-3.5 rounded-xl text-sm"
+            >
+              Заказать — {formatPrice(currentPrice)}
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

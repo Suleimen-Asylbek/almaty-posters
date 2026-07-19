@@ -1,35 +1,23 @@
 /**
- * Purely decorative depth layer for Hero — spans the whole section (both
+ * Decorative depth layer for Hero — spans the whole section (both
  * the text/visual row and the ring row) as one continuous background, so
  * the two rows read as one composition instead of "section, then another
- * section". Light-themed, per the brand's white/light design goal — no
- * grey slab, no photo, no dark vignette.
+ * section". Light-themed, per the brand's white/light design goal.
  *
  * 100% CSS, deliberately:
- *  - no SVG (not even as a data-URI filter — a live feTurbulence filter
- *    gets recomputed on repaint/resize and is unnecessary cost for a
- *    static texture);
+ *  - no SVG;
  *  - no canvas;
  *  - no CSS `filter`.
  *
  * Three stacked layer groups, all aria-hidden, all decorative:
  *  1. mesh — two soft, large radial-gradient blobs in brand-adjacent
  *     warm/cool tints, blurred until they read as a gradient mesh rather
- *     than distinct shapes (trimmed from an earlier third blob — it
- *     added visual noise behind the text without adding legible depth).
- *     `blur()` here is a Tailwind utility (a static, one-time-composited
- *     box-shadow-style blur on a decorative div), not a `filter` applied
- *     over live content.
+ *     than distinct shapes.
  *  2. grain — a small pre-baked grayscale noise tile
- *     (`/public/hero-noise.png`, 64×64, generated once and committed —
- *     see the repo's asset generation note) repeated as a plain
- *     `background-image` at very low opacity. The browser decodes it
- *     once and repeats the raster tile — same texture cue as a filter,
- *     none of the live-recompute cost.
+ *     (`/public/hero-noise.png`, 64×64, generated once and committed)
+ *     repeated as a plain `background-image` at very low opacity.
  *  3. vignette — an extremely subtle radial darkening at the very edges
- *     only (a few percent opacity), not a heavy black-corners vignette —
- *     just enough to stop the canvas from feeling like a flat sheet of
- *     paper.
+ *     only, not a heavy black-corners vignette.
  */
 export function HeroBackground() {
   return (
@@ -44,7 +32,7 @@ export function HeroBackground() {
         style={{ background: "radial-gradient(circle, #E9EEF3 0%, transparent 70%)" }}
       />
 
-      {/* Grain — static PNG tile, plain background-image, no filter */}
+      {/* Grain — static PNG tile, plain background-image */}
       <div
         className="absolute inset-0 opacity-[0.035] mix-blend-multiply"
         style={{ backgroundImage: "url(/hero-noise.png)", backgroundRepeat: "repeat" }}

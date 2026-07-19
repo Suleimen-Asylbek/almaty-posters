@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { FaqAccordion } from '@/components/faq/FaqAccordion';
 
 export const metadata: Metadata = {
@@ -51,6 +52,25 @@ export default function FaqPage() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <FaqAccordion items={faqs} />
+        
+        <div className="mt-16 text-center border-t border-[#E5E5E5] pt-12">
+          <p className="text-[#666666] text-base mb-6">
+            Не нашли ответ? Напишите нам — ответим быстро.
+          </p>
+          <a
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '77077124221'}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-[#111111] text-white font-bold px-8 py-3.5 rounded-2xl text-sm hover:bg-black transition-colors"
+          >
+            Написать в WhatsApp
+          </a>
+          <div className="mt-8">
+            <Link href="/catalog" className="text-sm text-[#666666] hover:text-[#111111] transition-colors underline underline-offset-4">
+              Перейти в каталог →
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

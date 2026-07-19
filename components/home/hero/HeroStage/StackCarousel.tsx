@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, type KeyboardEvent } from "react";
-import { animate, useMotionValue, type PanInfo } from "framer-motion";
+import { useCallback, useMemo, useEffect, useState, type KeyboardEvent } from "react";
+import { animate, useMotionValue, AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { StackCard } from "./StackCard";
 import { CarouselControls } from "./CarouselControls";
@@ -38,6 +38,12 @@ export function StackCarousel({
 }: StackCarouselProps) {
   const reducedMotion = usePrefersReducedMotion();
   const dragX = useMotionValue(0);
+
+  const [showHint, setShowHint] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowHint(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   const {
     order,
@@ -132,7 +138,7 @@ export function StackCarousel({
         onFocus={pauseAutoplay}
         onBlur={resumeAutoplay}
         className={cn(
-          "relative mx-auto w-full outline-none focus-visible:ring-2 focus-visible:ring-[#111111] focus-visible:ring-offset-4 rounded-3xl",
+          "relative mx-auto w-full outline-none focus-visible:ring-2 focus-visible:ring-[#111111] focus-visible:ring-offset-4 focus-visible:ring-offset-white rounded-3xl",
           viewportClassName ?? "aspect-[3/4] max-w-sm",
         )}
       >
@@ -169,6 +175,20 @@ export function StackCarousel({
         canNavigate={canNavigate}
         onGoTo={goTo}
       />
+
+      <AnimatePresence>
+        {showHint && canNavigate && !reducedMotion && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, delay: 0.8 }}
+            className="mt-3 text-center text-[11px] font-medium uppercase tracking-widest text-[#AAAAAA] select-none pointer-events-none"
+          >
+            ← Потяни →
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
