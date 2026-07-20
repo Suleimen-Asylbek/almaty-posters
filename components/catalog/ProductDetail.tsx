@@ -176,7 +176,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             </div>
           </div>
         </div>
-        <RelatedProducts products={relatedProducts} currentSlug={product.slug} />
+        <RelatedProducts products={relatedProducts} currentProduct={product} />
       </div>
       <AnimatePresence>
         {showStickyBar && (

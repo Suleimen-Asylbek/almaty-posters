@@ -17,35 +17,31 @@ export function SizeSelector({ selectedSize, onChange, prices, recommendedSize }
   return (
     <div>
       <p className="text-sm font-semibold text-[#111111] mb-3">
-        Размер:{' '}
-        <span className="font-normal text-[#666666]">{getSizeLabel(selectedSize)}</span>
+        Размер
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-2">
         {sizes.map((size) => (
           <motion.button
             key={size}
             onClick={() => onChange(size)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
-            className={`relative flex-1 py-3 rounded-xl border text-sm font-bold transition-colors ${
+            className={`relative px-4 py-2 rounded-full border text-sm font-medium transition-all ${
               selectedSize === size
                 ? 'bg-[#111111] text-white border-[#111111]'
                 : 'bg-white text-[#111111] border-[#E5E5E5] hover:border-[#111111]'
             }`}
           >
             {size === recommendedSize && (
-              <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                ✓ Рекомендуем
+              <span className="absolute -top-1.5 right-1.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F97316] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F97316]"></span>
               </span>
             )}
-            <div>{size}</div>
-            <div
-              className={`text-xs font-normal mt-0.5 ${
-                selectedSize === size ? 'text-white/70' : 'text-[#666666]'
-              }`}
-            >
+            {size}
+            <span className="ml-2 opacity-70 font-normal">
               {formatPrice(prices[size])}
-            </div>
+            </span>
           </motion.button>
         ))}
       </div>

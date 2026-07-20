@@ -10,120 +10,101 @@ import type {
   PaginationMeta,
 } from '@/lib/catalog/types';
 
-
+/**
+ * Shared wrapper to handle Supabase query boilerplate: try/catch,
+ * error logging, and returning a default value on failure.
+ */
+async function safeQuery<T>(
+  builder: PromiseLike<{ data: T | null; error: any }>,
+  errorLabel: string,
+  defaultValue: T
+): Promise<T> {
+  try {
+    const { data, error } = await builder;
+    if (error) {
+      console.error(`${errorLabel} ERROR:`, error);
+      return defaultValue;
+    }
+    return data ?? defaultValue;
+  } catch (error) {
+    console.error(`${errorLabel} EXCEPTION:`, error);
+    return defaultValue;
+  }
+}
 
 export const getProducts = cache(async (): Promise<Product[]> => {
-  try {
-    const supabase = await createClient();
-
-    // No .limit() here — historical note, not a live constraint. This
-    // used to be .limit(24), a correctness bug fixed at the P0 stage
-    // (see project history). The proper fix — server-side pagination —
-    // has since shipped as getPaginatedProducts(); the public catalog
-    // (/catalog) now reads through that function, not this one.
-    // getProducts() itself stays unbounded on purpose: its remaining
-    // callers (sitemap.ts, the admin dashboard) both genuinely need
-    // every product, not a page of them.
-    const { data, error } = await supabase
+  const supabase = await createClient();
+  const data = await safeQuery(
+    supabase
       .from("products")
       .select(`
         *,
         category:categories(*)
       `)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }),
+    "GET PRODUCTS",
+    []
+  );
 
-    if (error) {
-      console.error("GET PRODUCTS ERROR:", error);
-      return [];
-    }
-
-    return ((data ?? []) as Product[]).map((product) => normalizeProductImages(product) as Product);
-  } catch (error) {
-    console.error("GET PRODUCTS EXCEPTION:", error);
-    return [];
-  }
+  return data.map((product) => normalizeProductImages(product) as Product);
 });
 
 export const getProductBySlug = cache(async (
   slug: string,
 ): Promise<Product | null> => {
-  try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
+  const supabase = await createClient();
+  const data = await safeQuery(
+    supabase
       .from('products')
       .select(`
         *,
         category:categories(*)
       `)
       .eq('slug', slug)
-      .single();
+      .single(),
+    "GET PRODUCT BY SLUG",
+    null
+  );
 
-    if (error) {
-      console.error('GET PRODUCT BY SLUG ERROR:', error);
-      return null;
-    }
-
-    return normalizeProductImages(data) as Product;
-  } catch (error) {
-    console.error('GET PRODUCT BY SLUG EXCEPTION:', error);
-    return null;
-  }
+  return data ? (normalizeProductImages(data) as Product) : null;
 });
 
 export const getProductById = cache(async (
   id: string
 ): Promise<Product | null> => {
-  try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
+  const supabase = await createClient();
+  const data = await safeQuery(
+    supabase
       .from('products')
       .select(`
         *,
         category:categories(*)
       `)
       .eq('id', id)
-      .single();
+      .single(),
+    "GET PRODUCT BY ID",
+    null
+  );
 
-    if (error) {
-      console.error('GET PRODUCT BY ID ERROR:', error);
-      return null;
-    }
-
-    return normalizeProductImages(data) as Product;
-  } catch (error) {
-    console.error('GET PRODUCT BY ID EXCEPTION:', error);
-    return null;
-  }
+  return data ? (normalizeProductImages(data) as Product) : null;
 });
 
 export const getCategories = cache(async (): Promise<Category[]> => {
-  try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
+  const supabase = await createClient();
+  return safeQuery(
+    supabase
       .from('categories')
       .select('*')
-      .order('name');
-
-    if (error) {
-      console.error('GET CATEGORIES ERROR:', error);
-      return [];
-    }
-
-    return (data ?? []) as Category[];
-  } catch (error) {
-    console.error('GET CATEGORIES EXCEPTION:', error);
-    return [];
-  }
+      .order('name'),
+    "GET CATEGORIES",
+    []
+  );
 });
 
 export const getFeaturedProducts = cache(async () => {
-  try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
+  const supabase = await createClient();
+  const data = await safeQuery(
+    supabase
       .from("products")
       .select(`
         *,
@@ -131,24 +112,20 @@ export const getFeaturedProducts = cache(async () => {
       `)
       .eq("featured", true)
       .order("created_at", { ascending: false })
-      .limit(4);
+      .limit(4),
+    "GET FEATURED PRODUCTS",
+    []
+  );
 
-    if (error) {
-      console.error("GET FEATURED PRODUCTS ERROR:", error);
-      return [];
-    }
-
-    return (data ?? []).map((product) => normalizeProductImages(product));
-  } catch (error) {
-    console.error("GET FEATURED PRODUCTS EXCEPTION:", error);
-    return [];
-  }
+  return data.map((product) => normalizeProductImages(product));
 });
-export const getNewProducts = cache(async () => {
-  try {
-    const supabase = await createClient();
 
-    const { data, error } = await supabase
+export const getNewProducts = cache(async () => {
+  const supabase = await createClient();
+  
+  // Try getting explicitly flagged "new" products first
+  const newProducts = await safeQuery(
+    supabase
       .from("products")
       .select(`
         *,
@@ -156,36 +133,32 @@ export const getNewProducts = cache(async () => {
       `)
       .eq("is_new", true)
       .order("created_at", { ascending: false })
-      .limit(4);
+      .limit(4),
+    "GET NEW PRODUCTS",
+    []
+  );
 
-    if (error) {
-      console.error("GET NEW PRODUCTS ERROR:", error);
-      return [];
-    }
+  if (newProducts.length > 0) {
+    return newProducts.map((product) => normalizeProductImages(product));
+  }
 
-    if (data && data.length > 0) return (data ?? []).map((product) => normalizeProductImages(product));
-
-    // fallback to latest 4 if none flagged as new
-    const { data: fallbackData, error: fallbackError } = await supabase
+  // fallback to latest 4 if none flagged as new
+  const fallbackData = await safeQuery(
+    supabase
       .from("products")
       .select(`
         *,
         category:categories(*)
       `)
       .order("created_at", { ascending: false })
-      .limit(4);
+      .limit(4),
+    "GET NEW PRODUCTS FALLBACK",
+    []
+  );
 
-    if (fallbackError) {
-      console.error("GET NEW PRODUCTS FALLBACK ERROR:", fallbackError);
-      return [];
-    }
-
-    return (fallbackData ?? []).map((product) => normalizeProductImages(product));
-  } catch (error) {
-    console.error("GET NEW PRODUCTS EXCEPTION:", error);
-    return [];
-  }
+  return fallbackData.map((product) => normalizeProductImages(product));
 });
+
 
 /**
  * Applies sort to a products query builder. A dedicated function even

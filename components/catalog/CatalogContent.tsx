@@ -1,9 +1,18 @@
+'use client';
+
 import Link from "next/link";
-import { MessageCircle, Search, SearchX, X } from "lucide-react";
+import { MessageCircle, SearchX } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import type { Product, Category } from "@/lib/types";
 import type { PaginationMeta } from "@/lib/catalog/types";
+import { CatalogToolbar } from "@/components/catalog/CatalogToolbar";
 import { buildCatalogHref, type CatalogFilters } from "@/lib/catalog/url";
+import { motion } from "framer-motion";
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+};
 
 interface CatalogContentProps {
   products: Product[];
@@ -12,14 +21,6 @@ interface CatalogContentProps {
   filters: CatalogFilters;
 }
 
-/**
- * Fully server-driven: every product on the page, the total count, and
- * every pagination fact (totalPages/hasNextPage/hasPreviousPage/from/to)
- * already come from getPaginatedProducts() via props. This component
- * does not filter, search, paginate, or compute page counts — it only
- * renders what it was given and links to URLs that will make the server
- * recompute the next view.
- */
 export function CatalogContent({
   products,
   categories,
@@ -33,9 +34,16 @@ export function CatalogContent({
   const customPosterUrl = `https://wa.me/${phone}?text=${customPosterMessage}`;
 
   return (
-    <div className="pt-16 min-h-screen bg-white">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: { transition: { staggerChildren: 0.1 } }
+      }}
+      className="min-h-screen bg-white"
+    >
       {/* Header */}
-      <div className="bg-[#F6F6F6] border-b border-[#E5E5E5]">
+      <motion.div variants={staggerItem} className="bg-[#F6F6F6] border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div>
             <span className="text-xs font-semibold uppercase tracking-widest text-[#666666] block mb-3">
@@ -46,70 +54,24 @@ export function CatalogContent({
             </h1>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-10">
-          {/* Search — a plain GET form; submitting navigates to a new
-              /catalog URL, which is what triggers the server re-render.
-              No client state, no onChange handler. */}
-          <form action="/catalog" className="relative flex-1 max-w-sm">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#999999]"
-            />
-            <input
-              id="search"
-              name="search"
-              type="text"
-              placeholder="Поиск постера..."
-              defaultValue={filters.search}
-              className="w-full pl-10 pr-10 py-3 rounded-full border border-[#E5E5E5] bg-white text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#111111] transition-colors"
-            />
-            {filters.category !== "all" && (
-              <input type="hidden" name="category" value={filters.category} />
-            )}
-            {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
-            {filters.search && (
-              <Link
-                href={buildCatalogHref(filters, { search: "" })}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#111111]"
-                aria-label="Очистить поиск"
-              >
-                <X size={16} />
-              </Link>
-            )}
-          </form>
+      <motion.div variants={staggerItem}>
+        <CatalogToolbar filters={filters} categories={categories} />
+      </motion.div>
 
-          {/* Category pills — real links, not client state */}
-          <div className="flex flex-wrap gap-2">
-            <CategoryPill
-              label="Все"
-              active={filters.category === "all"}
-              href={buildCatalogHref(filters, { category: "all" })}
-            />
-            {categories.map((cat) => (
-              <CategoryPill
-                key={cat.slug}
-                label={cat.name}
-                active={filters.category === cat.slug}
-                href={buildCatalogHref(filters, { category: cat.slug })}
-              />
-            ))}
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
 
         {/* Results count — straight from pagination.totalCount, no local count */}
-        <p className="text-sm text-[#666666] mb-6">
+        <motion.p variants={staggerItem} className="text-sm text-[#666666] mb-6">
           {pagination.totalCount === 0
             ? "Ничего не найдено"
             : `${pagination.totalCount} ${pluralize(pagination.totalCount, "постер", "постера", "постеров")}`}
-        </p>
+        </motion.p>
 
         {/* Grid */}
         {products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E5E5E5] bg-[#F6F6F6] px-6 py-16 text-center">
+          <motion.div variants={staggerItem} className="flex flex-col items-center justify-center rounded-2xl border border-[#E5E5E5] bg-[#F6F6F6] px-6 py-16 text-center">
             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#111111] shadow-sm">
               <SearchX size={22} />
             </div>
@@ -138,10 +100,10 @@ export function CatalogContent({
                 Сбросить фильтры
               </Link>
             </div>
-          </div>
+          </motion.div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <motion.div variants={staggerItem} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product, index) => (
                 <ProductCard
                   key={product.id}
@@ -149,46 +111,18 @@ export function CatalogContent({
                   priority={index < 4}
                 />
               ))}
-            </div>
+            </motion.div>
 
-            <CatalogPaginationControls pagination={pagination} filters={filters} />
+            <motion.div variants={staggerItem}>
+                <CatalogPaginationControls pagination={pagination} filters={filters} />
+            </motion.div>
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function CategoryPill({
-  label,
-  active,
-  href,
-}: {
-  label: string;
-  active: boolean;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-        active
-          ? "bg-[#111111] text-white"
-          : "bg-white border border-[#E5E5E5] text-[#666666] hover:border-[#111111] hover:text-[#111111]"
-      }`}
-    >
-      {label}
-    </Link>
-  );
-}
-
-/**
- * Every fact rendered here (totalPages, hasNextPage, hasPreviousPage,
- * from, to, totalCount) comes directly from PaginationMeta — nothing is
- * recomputed. The only arithmetic here is `page ± 1` to build the target
- * URL for a prev/next link, which is unavoidable link construction, not
- * a re-derivation of any pagination fact the data layer already owns.
- */
 function CatalogPaginationControls({
   pagination,
   filters,

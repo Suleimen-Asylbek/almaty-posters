@@ -3,6 +3,7 @@ import "../styles/globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StickyWhatsAppButton } from "@/components/StickyWhatsAppButton";
+import { PageTransition } from "@/components/ui/motion/PageTransition";
 
 export const metadata: Metadata = {
   title: {
@@ -25,6 +26,9 @@ export const metadata: Metadata = {
       { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico' },
     ],
+    apple: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
   },
   openGraph: {
     title: "Almaty Posters — Постеры для твоей комнаты",
@@ -43,12 +47,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Almaty Posters — Постеры для твоей комнаты",
-    description:
-      "Качественные постеры с доставкой по Алматы и всему Казахстану.",
-  },
 };
 
 export default function RootLayout({
@@ -60,7 +58,9 @@ export default function RootLayout({
     <html lang="ru">
       <body className="antialiased">
         <Header />
-        <main>{children}</main>
+        <PageTransition>
+          <main>{children}</main>
+        </PageTransition>
         <Footer />
         <StickyWhatsAppButton />
       </body>

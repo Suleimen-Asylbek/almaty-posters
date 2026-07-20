@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FadeIn, StaggerContainer, staggerItem } from '@/components/ui/motion/FadeIn';
+import { StaggerContainer, staggerItem } from '@/components/ui/motion';
 
 const reviews = [
   { name: "Алия М.", district: "Алматы, Бостандык", text: "Заказала постер с аниме для дочки — качество печати отличное, цвета яркие. Доставили на следующий день, упаковка плотная, ничего не помялось.", rating: 5 },
@@ -38,7 +38,7 @@ export function ReviewsSection() {
               <div className="flex text-[#F97316] mb-4">
                 {[...Array(review.rating)].map((_, j) => <span key={j}>★</span>)}
               </div>
-              <p className="text-[#AAAAAA] mb-6 leading-relaxed">"{review.text}"</p>
+              <p className="text-[#AAAAAA] mb-6 leading-relaxed">&quot;{review.text}&quot;</p>
               <div>
                 <p className="font-bold text-white">{review.name}</p>
                 <p className="text-xs text-[#666666]">{review.district}</p>

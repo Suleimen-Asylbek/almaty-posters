@@ -3,18 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useMotionValue, useTransform, useMotionTemplate } from "framer-motion";
+import { Flame } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
-  showNewBadge?: boolean;
   priority?: boolean;
 }
 
 export function ProductCard({
   product,
-  showNewBadge = false,
   priority = false,
 }: ProductCardProps) {
   const x = useMotionValue(0);
@@ -75,13 +74,19 @@ export function ProductCard({
 
           {/* Бейджи */}
           <div className="absolute top-4 left-4 flex flex-col gap-2 z-30" style={{ transform: "translateZ(40px)" }}>
-            {showNewBadge && product.is_new && (
-              <span className="bg-[#111111] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                НОВИНКА
-              </span>
+            {product.featured && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.05 }}
+                className="bg-[#F97316] text-white font-bold h-6 min-w-[72px] px-3 rounded-full uppercase tracking-wider flex items-center justify-center gap-1 text-[10px]"
+              >
+                <Flame size={12} fill="currentColor" />
+                Хит
+              </motion.div>
             )}
             {product.category && (
-              <span className="bg-white/90 backdrop-blur-sm text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="bg-white/90 backdrop-blur-sm text-[#111111] text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
                 {product.category.name}
               </span>
             )}

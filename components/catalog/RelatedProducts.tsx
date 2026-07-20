@@ -3,12 +3,12 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 
 interface RelatedProductsProps {
   products: Product[];
-  currentSlug: string;
+  currentProduct: Product;
 }
 
-export function RelatedProducts({ products, currentSlug }: RelatedProductsProps) {
+export function RelatedProducts({ products, currentProduct }: RelatedProductsProps) {
   const related = products
-    .filter((p) => p.slug !== currentSlug)
+    .filter((p) => p.id !== currentProduct.id && p.category?.id === currentProduct.category?.id)
     .slice(0, 4);
 
   if (related.length === 0) return null;
