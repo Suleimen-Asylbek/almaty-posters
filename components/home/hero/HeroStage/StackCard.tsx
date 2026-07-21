@@ -94,7 +94,7 @@ function StackCardImpl({
           priority={isFront}
           loading={isFront ? "eager" : "lazy"}
           sizes="(max-width: 1024px) 70vw, 420px"
-          className="select-none object-cover"
+          className="select-none object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           unoptimized={shouldUnoptimize}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent px-5 pb-5 pt-16">

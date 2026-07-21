@@ -1,9 +1,5 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { FadeIn } from '@/components/ui/motion/FadeIn';
 
 export function AboutContent() {
   return (
@@ -19,11 +15,8 @@ export function AboutContent() {
           unoptimized
         />
         <div className="absolute inset-0 bg-black/50" />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="relative z-10 text-center px-4 max-w-2xl"
+        <div
+          className="relative z-10 text-center px-4 max-w-2xl animate-slide-up"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-white/70 block mb-4">
             Наша история
@@ -31,13 +24,13 @@ export function AboutContent() {
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight">
             Мы создаём постеры, которые превращают комнату в отражение твоей личности
           </h1>
-        </motion.div>
+        </div>
       </section>
 
       {/* Body */}
       <section className="py-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <FadeIn className="space-y-6 text-[#666666] text-lg leading-relaxed">
+          <div className="space-y-6 text-[#666666] text-lg leading-relaxed animate-slide-up">
             <p>
               Всё началось с простой идеи: стены вокруг нас должны говорить о том, кто мы есть.
               Любимый фильм, культовый альбом, персонаж аниме, который вдохновляет — каждая
@@ -58,9 +51,9 @@ export function AboutContent() {
               Если ты не нашёл то, что искал — напиши нам. Мы с радостью поможем подобрать постер
               или напечатаем что-то по твоей собственной идее.
             </p>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.15} className="mt-12 grid grid-cols-3 gap-6 border-t border-[#E5E5E5] pt-10">
+          <div className="mt-12 grid grid-cols-3 gap-6 border-t border-[#E5E5E5] pt-10 animate-slide-up" style={{ animationDelay: '0.15s' }}>
             <div className="text-center">
               <p className="text-3xl font-black text-[#111111]">100+</p>
               <p className="text-xs text-[#666666] mt-1">Постеров в каталоге</p>
@@ -73,9 +66,9 @@ export function AboutContent() {
               <p className="text-3xl font-black text-[#111111]">2024</p>
               <p className="text-xs text-[#666666] mt-1">год основания</p>
             </div>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.25} className="mt-14 text-center">
+          <div className="mt-14 text-center animate-slide-up" style={{ animationDelay: '0.25s' }}>
             <div className="mt-16 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/catalog"
@@ -92,7 +85,7 @@ export function AboutContent() {
                 Написать нам
               </a>
             </div>
-          </FadeIn>
+          </div>
         </div>
       </section>
     </div>

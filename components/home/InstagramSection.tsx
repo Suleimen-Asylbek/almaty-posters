@@ -1,13 +1,8 @@
-'use client';
-
-import { motion } from 'framer-motion';
-import { FadeIn } from '@/components/ui/FadeIn';
-
 export function InstagramSection() {
   return (
     <section className="py-24 bg-[#F6F6F6]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <FadeIn className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center animate-slide-up">
           <span className="text-xs font-semibold uppercase tracking-widest text-[#666666] block mb-4">
             Социальные сети
           </span>
@@ -18,19 +13,16 @@ export function InstagramSection() {
             Следи за новинками, акциями и вдохновением для оформления твоей комнаты.
           </p>
 
-          <motion.a
+          <a
             href="https://instagram.com/almatyposters"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold px-8 py-4 rounded-full text-sm"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.2 }}
+            className="inline-flex items-center gap-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold px-8 py-4 rounded-full text-sm transition-transform hover:scale-105 active:scale-95"
           >
             <InstagramIcon />
             Перейти в Instagram
-          </motion.a>
-        </FadeIn>
+          </a>
+        </div>
       </div>
     </section>
   );

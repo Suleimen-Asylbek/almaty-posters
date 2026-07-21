@@ -1,8 +1,3 @@
-'use client';
-
-import { motion } from 'framer-motion';
-import { StaggerContainer, staggerItem } from '@/components/ui/FadeIn';
-
 const features = [
   {
     icon: (
@@ -46,34 +41,27 @@ export function WhyUsSection() {
   return (
     <section className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <StaggerContainer className="mb-16 max-w-xl">
-          <motion.span
-            variants={staggerItem}
-            className="text-xs font-semibold uppercase tracking-widest text-[#666666] block mb-3"
-          >
+        <div className="mb-16 max-w-xl">
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#666666] block mb-3">
             Наши преимущества
-          </motion.span>
-          <motion.h2
-            variants={staggerItem}
-            className="text-4xl sm:text-5xl font-black text-[#111111] tracking-tight"
-          >
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-black text-[#111111] tracking-tight">
             Почему мы?
-          </motion.h2>
-        </StaggerContainer>
+          </h2>
+        </div>
 
-        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((f) => (
-            <motion.div
+            <div
               key={f.title}
-              variants={staggerItem}
-              className="group p-6 rounded-2xl border border-[#E5E5E5] hover:shadow-lg transition-shadow duration-300"
+              className="p-6 rounded-2xl border border-[#E5E5E5] transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
             >
-              <div className="text-[#111111] mb-4">{f.icon}</div>
+              <div className="text-[#111111] mb-4 transition-transform duration-300 group-hover:scale-110">{f.icon}</div>
               <h3 className="font-bold text-[#111111] text-base mb-2">{f.title}</h3>
               <p className="text-[#666666] text-sm leading-relaxed">{f.desc}</p>
-            </motion.div>
+            </div>
           ))}
-        </StaggerContainer>
+        </div>
       </div>
     </section>
   );

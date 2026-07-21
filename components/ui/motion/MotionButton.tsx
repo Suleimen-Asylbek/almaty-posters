@@ -1,28 +1,23 @@
 "use client";
 
-import { motion, type HTMLMotionProps } from "framer-motion";
 import { forwardRef } from "react";
-import { interactions } from "@/lib/motion/tokens";
 
-interface MotionButtonProps extends HTMLMotionProps<"button"> {
+interface MotionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost";
 }
 
 export const MotionButton = forwardRef<HTMLButtonElement, MotionButtonProps>(
   ({ variant = "primary", className, ...props }, ref) => {
     const variants = {
-      primary: "bg-primary text-white hover:bg-primary/90",
-      secondary: "border border-border bg-white text-primary hover:border-secondary hover:bg-surface-secondary",
-      ghost: "text-secondary hover:text-primary",
+      primary: "bg-[#111111] text-white hover:bg-[#333333]",
+      secondary: "border border-[#E5E5E5] bg-white text-[#111111] hover:border-[#CCCCCC] hover:bg-[#F9F9F9]",
+      ghost: "text-[#666666] hover:text-[#111111]",
     };
 
     return (
-      <motion.button
+      <button
         ref={ref}
-        whileHover={interactions.button.hover}
-        whileTap={interactions.button.tap}
-        transition={interactions.button.transition}
-        className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-colors ${variants[variant]} ${className}`}
+        className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${variants[variant]} ${className}`}
         {...props}
       />
     );

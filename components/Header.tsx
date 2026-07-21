@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence, useScroll } from "framer-motion";
 import { WhatsAppIcon } from "./ui/WhatsAppIcon";
 
 const navLinks = [
@@ -16,28 +15,27 @@ const navLinks = [
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    return scrollY.on("change", (latest) => {
-      setIsScrolled(latest > 20);
-    });
-  }, [scrollY]);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const isActiveLink = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 
   return (
-    <motion.header
-      className="fixed top-0 left-0 right-0 z-50 border-b border-[#E5E5E5] transition-all duration-300 bg-white/90 backdrop-blur-md"
-      animate={{
-        height: isScrolled ? "56px" : "72px",
-      }}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 border-b border-[#E5E5E5] transition-all duration-300 bg-white/90 backdrop-blur-md ${
+        isScrolled ? "h-14" : "h-[72px]"
+      }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-        {/* Logo */}
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-70"
@@ -54,7 +52,6 @@ export function Header() {
           </div>
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
             const active = isActiveLink(link.href);
@@ -76,20 +73,18 @@ export function Header() {
           })}
         </nav>
 
-        {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
           <a
             href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "77077124221"}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#25D366] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#1fb855] hover:scale-[1.03] transition-all"
+            className="inline-flex items-center gap-2 bg-[#25D366] text-white text-sm font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] hover:bg-[#1fb855]"
           >
             <WhatsAppIcon className="w-4 h-4" />
             WhatsApp
           </a>
         </div>
 
-        {/* Mobile burger */}
         <button
           type="button"
           className="md:hidden rounded-full p-2 text-[#111111] transition-colors hover:bg-[#F6F6F6]"
@@ -102,50 +97,43 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            id="mobile-menu"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden overflow-hidden border-t border-[#E5E5E5] bg-white shadow-lg"
-          >
-            <nav className="px-4 py-6 flex flex-col gap-4">
-              {navLinks.map((link) => {
-                const active = isActiveLink(link.href);
+      <div
+        id="mobile-menu"
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-[#E5E5E5] bg-white ${
+          menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <nav className="px-4 py-6 flex flex-col gap-4">
+          {navLinks.map((link) => {
+            const active = isActiveLink(link.href);
 
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`rounded-lg px-3 py-2 text-base font-medium transition-colors ${
-                      active
-                        ? "bg-[#F97316]/10 text-[#F97316]"
-                        : "text-[#111111] hover:bg-[#F6F6F6]"
-                    }`}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-              <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "77077124221"}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white text-sm font-semibold px-4 py-3 rounded-full justify-center mt-2"
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                  active
+                    ? "bg-[#F97316]/10 text-[#F97316]"
+                    : "text-[#111111] hover:bg-[#F6F6F6]"
+                }`}
+                onClick={() => setMenuOpen(false)}
               >
-                <WhatsAppIcon className="w-4 h-4" />
-                Написать в WhatsApp
-              </a>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.header>
+                {link.label}
+              </Link>
+            );
+          })}
+          <a
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "77077124221"}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-[#25D366] text-white text-sm font-semibold px-4 py-3 rounded-full justify-center mt-2"
+          >
+            <WhatsAppIcon className="w-4 h-4" />
+            Написать в WhatsApp
+          </a>
+        </nav>
+      </div>
+    </header>
   );
 }

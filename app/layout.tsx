@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "../styles/globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StickyWhatsAppButton } from "@/components/StickyWhatsAppButton";
-import { PageTransition } from "@/components/ui/motion/PageTransition";
+
+const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
 
 export const metadata: Metadata = {
   title: {
@@ -55,12 +57,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru">
-      <body className="antialiased">
+    <html lang="ru" className={inter.className}>
+      <body className="antialiased text-primary bg-background">
         <Header />
-        <PageTransition>
-          <main>{children}</main>
-        </PageTransition>
+        <main>{children}</main>
         <Footer />
         <StickyWhatsAppButton />
       </body>

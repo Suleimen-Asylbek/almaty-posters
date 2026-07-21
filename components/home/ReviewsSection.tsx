@@ -31,9 +31,9 @@ export function ReviewsSection() {
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reviews.map((review, i) => (
             <motion.div
-              key={i}
-              variants={staggerItem}
-              className="bg-[#1A1A1A] p-6 rounded-2xl"
+            key={i}
+            variants={staggerItem}
+            className="bg-[#1A1A1A] p-6 rounded-2xl transition-all duration-300 hover:bg-[#222222] hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="flex text-[#F97316] mb-4">
                 {[...Array(review.rating)].map((_, j) => <span key={j}>★</span>)}
